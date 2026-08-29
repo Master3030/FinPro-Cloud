@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FinPro Cloud | Gestión Financiera</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root { --primary: #6366f1; --primary-dark: #4f46e5; --success: #10b981; --danger: #ef4444; --warning: #f59e0b; --bg-dark: #0f172a; --bg-card: rgba(30, 41, 59, 0.7); --text-primary: #f1f5f9; --text-muted: #94a3b8; --border: rgba(255, 255, 255, 0.1); }
+        * { margin: 0; padding: 0; box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: var(--text-primary); min-height: 100vh; overflow-x: hidden; }
+        .app-container { max-width: 480px; margin: 0 auto; padding: 20px; position: relative; }
+        .fade-in { animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; transform: translateY(20px); }
+        @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
+        
+        /* Auth & Common */
+        #authScreen { position: fixed; inset: 0; background: var(--bg-dark); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        #authScreen.hidden { display: none; }
+        .auth-card { background: var(--bg-card); backdrop-filter: blur(20px); border: 1px solid var(--border); border-radius: 24px; padding: 40px 30px; width: 100%; max-width: 380px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
+        .logo { width: 80px; height: 80px; background: linear-gradient(135deg, var(--primary), #06b6d4); border-radius: 20px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 32px; box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3); }
+        h1 { font-family: 'Poppins'; font-size: 28px; font-weight: 700; margin-bottom: 8px; background: linear-gradient(135deg, #fff, var(--text-muted)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .subtitle { color: var(--text-muted); font-size: 14px; margin-bottom: 30px; }
+        .input-group { margin-bottom: 15px; text-align: left; }
+        label { display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; }
+        input, select { width: 100%; padding: 12px; background: rgba(15,23,42,0.6); border: 1px solid var(--border); border-radius: 10px; color: white; font-size: 14px; }
+        input:focus, select:focus { border-color: var(--primary); }
+        .btn-primary { width: 100%; padding: 14px; background: var(--primary); border: none; border-radius: 12px; color: white; font-weight: 600; cursor: pointer; transition: 0.3s; margin-top: 10px; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(99,102,241,0.4); }
+        .auth-switch { margin-top: 20px; font-size: 14px; color: var(--text-muted); }
+        .auth-switch a { color: var(--primary); cursor: pointer; font-weight: 600; }
+        .error-msg { color: var(--danger); font-size: 12px; margin-top: 10px; display: none; }
+        
+        /* Dashboard */
+        #dashboardScreen { display: none; }
+        #dashboardScreen.active { display: block; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .user-info h2 { font-family: 'Poppins'; font-size: 22px; }
+        .btn-logout { background: rgba(239,68,68,0.2); color: var(--danger); border: 1px solid var(--danger); padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 11px; }
+        
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+        .stat-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 16px; }
+        .stat-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; }
+        .stat-value { font-family: 'Poppins'; font-size: 20px; font-weight: 700; margin-top: 5px; }
+        
+        .chart-section { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 20px; }
+        .chart-container { height: 180px; position: relative; }
+        
+        .section-header { font-weight: 600; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+        
+        .tx-list { display: flex; flex-direction: column; gap: 10px; }
+        .tx-item { background: rgba(255,255,255,0.05); padding: 14px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid transparent; }
+        .tx-item.recurring { border-left-color: var(--warning); background: rgba(245, 158, 11, 0.05); }
+        .tx-item.overdue { border-left-color: var(--danger); background: rgba(239, 68, 68, 0.05); }
+        
+        .tx-main { flex: 1; }
+        .tx-title { font-weight: 600; font-size: 14px; margin-bottom: 2px; display: flex; align-items: center; gap: 6px; }
+        .badge-recurring { font-size: 9px; background: var(--warning); color: black; padding: 2px 4px; border-radius: 4px; font-weight: bold; }
+        .tx-meta { font-size: 11px; color: var(--text-muted); }
+        .tx-amount { font-weight: 700; font-size: 15px; margin-left: 10px; }
+        .tx-amount.pos { color: var(--success); }
+        .tx-amount.neg { color: var(--danger); }
+        .btn-delete { background: transparent; color: var(--text-muted); border: none; font-size: 16px; cursor: pointer; margin-left: 8px; }
+        .btn-delete:hover { color: var(--danger); }
+
+        /* Modal */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 200; display: none; align-items: flex-end; justify-content: center; }
+        .modal-overlay.active { display: flex; }
+        .modal-content { background: #1e293b; width: 100%; max-width: 480px; border-radius: 24px 24px 0 0; padding: 24px; border-top: 1px solid var(--border); animation: slideUp 0.3s; max-height: 90vh; overflow-y: auto; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        
+        .checkbox-group { display: flex; align-items: center; gap: 10px; margin: 10px 0; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; }
+        .checkbox-group input { width: auto; margin: 0; }
+        .checkbox-group label { margin: 0; font-size: 13px; color: var(--text-primary); cursor: pointer; }
+        
+        .fab { position: fixed; bottom: 25px; right: 25px; width: 56px; height: 56px; background: var(--primary); border-radius: 50%; color: white; font-size: 28px; border: none; box-shadow: 0 8px 25px rgba(99,102,241,0.5); cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 90; }
+    </style>
+</head>
+<body>
+
+    <!-- AUTH SCREEN -->
+    <div id="authScreen">
+        <div id="loginView" class="auth-card fade-in">
+            <div class="logo">☁️</div>
+            <h1>FinPro Cloud</h1>
+            <!-- SUBTÍTULO CORREGIDO -->
+            <p class="subtitle">Tus finanzas sincronizadas</p> 
+            
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="input-group"><label>Email</label><input type="email" id="loginEmail" required></div>
+                <div class="input-group"><label>Contraseña</label><input type="password" id="loginPass" required></div>
+                <button type="submit" class="btn-primary">Entrar</button>
+                <span class="auth-switch" style="margin-top:15px; display:block;">
+                    <a onclick="showReset()">¿Olvidaste contraseña?</a> | <a onclick="showRegister()">Registrarse</a>
+                </span>
+                <div id="loginError" class="error-msg"></div>
+            </form>
+        </div>
+        
+        <div id="registerView" class="auth-card fade-in" style="display:none;">
+            <div class="logo"></div>
+            <h1>Crear Cuenta</h1>
+            <p class="subtitle">Comienza hoy mismo</p>
+            <form id="registerForm" onsubmit="handleRegister(event)">
+                <div class="input-group"><label>Nombre</label><input type="text" id="regName" required></div>
+                <div class="input-group"><label>Email</label><input type="email" id="regEmail" required></div>
+                <div class="input-group"><label>Contraseña</label><input type="password" id="regPass" required minlength="6"></div>
+                <button type="submit" class="btn-primary">Registrar</button>
+                <div id="regError" class="error-msg"></div>
+                <div class="auth-switch"><a onclick="showLogin()">Volver al Login</a></div>
+            </form>
+        </div>
+
+        <div id="resetView" class="auth-card fade-in" style="display:none;">
+            <div class="logo">🔑</div>
+            <h1>Recuperar Acceso</h1>
+            <p class="subtitle">Te enviaremos un enlace</p>
+            <form id="resetForm" onsubmit="handleReset(event)">
+                <div class="input-group"><label>Email</label><input type="email" id="resetEmail" required></div>
+                <button type="submit" class="btn-primary">Enviar Link</button>
+                <div id="resetMsg" class="error-msg" style="color:var(--success)"></div>
+                <div class="auth-switch"><a onclick="showLogin()">Volver</a></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="dashboardScreen">
+        <div class="app-container">
+            <div class="header fade-in">
+                <div class="user-info">
+                    <p id="currentDate" style="font-size:12px; color:var(--text-muted);"></p>
+                    <h2 id="userName">Hola...</h2>
+                </div>
+                <button class="btn-logout" onclick="handleLogout()">Salir</button>
+            </div>
+
+            <div class="stats-grid fade-in">
+                <div class="stat-card">
+                    <div class="stat-label">Balance Total</div>
+                    <div class="stat-value" id="totalBalance">$0.00</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Gastos Mes</div>
+                    <div class="stat-value" id="monthlyExpense" style="color:var(--danger)">$0.00</div>
+                </div>
+            </div>
+
+            <div class="chart-section fade-in">
+                <div class="section-header">Análisis Financiero</div>
+                <div class="chart-container"><canvas id="mainChart"></canvas></div>
+            </div>
+
+            <div class="fade-in">
+                <div class="section-header">
+                    <span>Movimientos y Facturas</span>
+                    <span style="font-size:11px; color:var(--text-muted);" id="pendingCount">0 pendientes</span>
+                </div>
+                <div id="txList" class="tx-list">
+                    <!-- Items aquí -->
+                </div>
+            </div>
+            <div style="height:80px;"></div>
+        </div>
+    </div>
+
+    <!-- FAB -->
+    <button class="fab" onclick="openModal()">+</button>
+
+    <!-- MODAL AGREGAR -->
+    <div class="modal-overlay" id="addModal">
+        <div class="modal-content">
+            <h3 style="margin-bottom:15px;">Nuevo Movimiento</h3>
+            
+            <div class="input-group">
+                <label>Tipo</label>
+                <select id="txType" onchange="toggleRecurringOptions()">
+                    <option value="expense">Gasto</option>
+                    <option value="income">Ingreso</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>Concepto</label>
+                <input type="text" id="txConcept" placeholder="Ej: Luz, Sueldo, Netflix">
+            </div>
+
+            <div class="input-group">
+                <label>Monto</label>
+                <input type="number" id="txAmount" placeholder="0.00" step="0.01">
+            </div>
+
+            <!-- Opciones Recurrentes -->
+            <div class="checkbox-group">
+                <input type="checkbox" id="isRecurring" onchange="toggleRecurringOptions()">
+                <label for="isRecurring">Es una factura recurrente (mensual)</label>
+            </div>
+
+            <div class="input-group" id="dueDayGroup" style="display:none;">
+                <label>Vence cada día:</label>
+                <select id="dueDay">
+                    <option value="1">Día 1</option>
+                    <option value="5">Día 5</option>
+                    <option value="10">Día 10</option>
+                    <option value="15">Día 15</option>
+                    <option value="20">Día 20</option>
+                    <option value="25">Día 25</option>
+                    <option value="30">Día 30</option>
+                </select>
+            </div>
+
+            <button class="btn-primary" onclick="saveTransaction()">Guardar</button>
+            <button style="width:100%; padding:12px; margin-top:10px; background:transparent; border:1px solid var(--border); color:var(--text-muted); border-radius:8px;" onclick="closeModal()">Cancelar</button>
+        </div>
+    </div>
+
+    <script>
+        // ⚠️ REEMPLAZA ESTO CON TUS CLAVES DE FIREBASE
+        const firebaseConfig = {
+            apiKey: "TU_API_KEY_AQUI",
+            authDomain: "TU_PROYECTO.firebaseapp.com",
+            projectId: "TU_PROYECTO_ID",
+            storageBucket: "TU_PROYECTO.appspot.com",
+            messagingSenderId: "SENDER_ID",
+            appId: "APP_ID"
+        };
+
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        let currentUser = null;
+        let unsubTx = null;
+
+        // --- AUTH LOGIC ---
+        function showLogin() { swapView('loginView'); }
+        function showRegister() { swapView('registerView'); }
+        function showReset() { swapView('resetView'); }
+        function swapView(id) {
+            ['loginView','registerView','resetView'].forEach(v => document.getElementById(v).style.display = 'none');
+            document.getElementById(id).style.display = 'block';
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            auth.signInWithEmailAndPassword(document.getElementById('loginEmail').value, document.getElementById('loginPass').value)
+                .catch(err => {
+                    const msg = err.message.replace('Firebase: ', '');
+                    document.getElementById('loginError').textContent = msg;
+                    document.getElementById('loginError').style.display = 'block';
+                });
+        }
+
+        function handleRegister(e) {
+            e.preventDefault();
+            const email = document.getElementById('regEmail').value;
+            const pass = document.getElementById('regPass').value;
+            const name = document.getElementById('regName').value;
+            
+            auth.createUserWithEmailAndPassword(email, pass)
+                .then(res => db.collection('users').doc(res.user.uid).set({ name, email }))
+                .catch(err => {
+                    const msg = err.message.replace('Firebase: ', '');
+                    document.getElementById('regError').textContent = msg;
+                    document.getElementById('regError').style.display = 'block';
+                });
+        }
+
+        function handleReset(e) {
+            e.preventDefault();
+            auth.sendPasswordResetEmail(document.getElementById('resetEmail').value)
+                .then(() => {
+                    document.getElementById('resetMsg').textContent = "✅ Email enviado. Revisa tu bandeja.";
+                    document.getElementById('resetMsg').style.display = 'block';
+                })
+                .catch(err => alert(err.message));
+        }
+
+        function handleLogout() {
+            if(unsubTx) unsubTx();
+            auth.signOut().then(() => location.reload());
+        }
+
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                currentUser = user;
+                db.collection('users').doc(user.uid).get().then(doc => {
+                    if(doc.exists) document.getElementById('userName').textContent = `Hola, ${doc.data().name}`;
+                });
+                document.getElementById('authScreen').classList.add('hidden');
+                document.getElementById('dashboardScreen').classList.add('active');
+                updateDate();
+                listenTransactions();
+            } else {
+                document.getElementById('authScreen').classList.remove('hidden');
+                document.getElementById('dashboardScreen').classList.remove('active');
+            }
+        });
+
+        // --- TRANSACTION LOGIC WITH RECURRING ---
+        function toggleRecurringOptions() {
+            const isRec = document.getElementById('isRecurring').checked;
+            const type = document.getElementById('txType').value;
+            // Solo mostrar opción de día de vencimiento si es Gasto y es Recurrente
+            document.getElementById('dueDayGroup').style.display = (isRec && type === 'expense') ? 'block' : 'none';
+        }
+
+        function saveTransaction() {
+            const concept = document.getElementById('txConcept').value;
+            const amount = parseFloat(document.getElementById('txAmount').value);
+            const type = document.getElementById('txType').value;
+            const isRecurring = document.getElementById('isRecurring').checked;
+            const dueDay = parseInt(document.getElementById('dueDay').value) || 1;
+
+            if(!concept || !amount) return alert("Completa los datos");
+
+            const finalAmount = type === 'expense' ? -Math.abs(amount) : Math.abs(amount);
+            
+            // Calcular mes actual para marcar como pagado si es un pago único o registro inicial
+            const now = new Date();
+            const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+
+            db.collection('transactions').add({
+                uid: currentUser.uid,
+                concept,
+                amount: finalAmount,
+                type,
+                isRecurring,
+                dueDay: isRecurring ? dueDay : null,
+                date: firebase.firestore.FieldValue.serverTimestamp(),
+                paidMonth: isRecurring ? currentMonthStr : null 
+            }).then(() => closeModal());
+        }
+
+        function deleteTransaction(id) {
+            if(confirm("¿Borrar este movimiento?")) db.collection('transactions').doc(id).delete();
+        }
+
+        function listenTransactions() {
+            unsubTx = db.collection('transactions')
+                .where('uid', '==', currentUser.uid)
+                .orderBy('date', 'desc')
+                .onSnapshot(snapshot => {
+                    renderList(snapshot.docs);
+                });
+        }
+
+        function renderList(docs) {
+            const list = document.getElementById('txList');
+            list.innerHTML = '';
+            
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            const currentMonth = now.getMonth() + 1; // 1-12
+            const todayDay = now.getDate();
+            
+            let totalBal = 0;
+            let monthExp = 0;
+            let incomeChart = 0;
+            let expenseChart = 0;
+            let pendingCount = 0;
+
+            // 1. Procesar transacciones reales guardadas
+            const realTransactions = [];
+            docs.forEach(doc => {
+                const tx = doc.data();
+                tx.id = doc.id;
+                
+                // Cálculos generales
+                totalBal += tx.amount;
+                
+                const txDate = tx.date ? tx.date.toDate() : new Date();
+                if(txDate.getFullYear() === currentYear && txDate.getMonth() + 1 === currentMonth) {
+                    if(tx.amount > 0) incomeChart += tx.amount;
+                    else {
+                        monthExp += Math.abs(tx.amount);
+                        expenseChart += Math.abs(tx.amount);
+                    }
+                }
+
+                // Lógica de Recurrencia: ¿Mostrar como pendiente este mes?
+                if (tx.isRecurring && tx.type === 'expense') {
+                    const txPaidMonth = tx.paidMonth; // ej: "2023-10"
+                    const currentMonthStr = `${currentYear}-${String(currentMonth).padStart(2,'0')}`;
+                    
+                    // Si NO ha sido pagada este mes Y el día de vencimiento ya pasó (o es hoy)
+                    if (txPaidMonth !== currentMonthStr && todayDay >= tx.dueDay) {
+                        // Creamos un objeto virtual "Pendiente"
+                        realTransactions.push({
+                            ...tx,
+                            isVirtual: true,
+                            amount: -Math.abs(tx.amount), // Forzar negativo
+                            concept: tx.concept + " (Pendiente)",
+                            displayDate: `Vence día ${tx.dueDay}`
+                        });
+                        pendingCount++;
+                        monthExp += Math.abs(tx.amount); // Contar en gastos del mes proyectado
+                        expenseChart += Math.abs(tx.amount);
+                    } else {
+                        // Ya fue pagada este mes o aún no vence, mostrar normal si existe registro
+                         if(txPaidMonth === currentMonthStr) {
+                             // Es el registro real del pago hecho
+                             realTransactions.push(tx);
+                         }
+                    }
+                } else {
+                    // No es recurrente, mostrar siempre
+                    realTransactions.push(tx);
+                }
+            });
+
+            // Ordenar: Pendientes primero, luego por fecha
+            realTransactions.sort((a, b) => {
+                if (a.isVirtual && !b.isVirtual) return -1;
+                if (!a.isVirtual && b.isVirtual) return 1;
+                const dateA = a.date ? a.date.toDate() : new Date(0);
+                const dateB = b.date ? b.date.toDate() : new Date(0);
+                return dateB - dateA;
+            });
+
+            // Renderizar HTML
+            if (realTransactions.length === 0) {
+                list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted)">Sin movimientos aún</div>';
+            }
+
+            realTransactions.forEach(tx => {
+                const isPos = tx.amount > 0;
+                const dateStr = tx.isVirtual ? tx.displayDate : (tx.date ? tx.date.toDate().toLocaleDateString() : '');
+                const itemClass = tx.isVirtual ? 'tx-item recurring' : 'tx-item';
+                
+                const div = document.createElement('div');
+                div.className = itemClass;
+                div.innerHTML = `
+                    <div class="tx-main">
+                        <div class="tx-title">
+                            ${tx.concept}
+                            ${tx.isRecurring ? '<span class="badge-recurring"></span>' : ''}
+                            ${tx.isVirtual ? '<span style="color:var(--warning); font-size:10px;">⚠️ Pendiente</span>' : ''}
+                        </div>
+                        <div class="tx-meta">${dateStr}</div>
+                    </div>
+                    <div style="display:flex; align-items:center;">
+                        <div class="tx-amount ${isPos ? 'pos' : 'neg'}">${isPos ? '+' : ''}$${Math.abs(tx.amount).toFixed(2)}</div>
+                        ${!tx.isVirtual ? `<button class="btn-delete" onclick="deleteTransaction('${tx.id}')">×</button>` : ''}
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+
+            // Actualizar UI Stats
+            document.getElementById('totalBalance').textContent = `$${totalBal.toFixed(2)}`;
+            document.getElementById('monthlyExpense').textContent = `$${monthExp.toFixed(2)}`;
+            document.getElementById('pendingCount').textContent = `${pendingCount} facturas por pagar`;
+            
+            renderChart(incomeChart, expenseChart);
+        }
+
+        function renderChart(inc, exp) {
+            const ctx = document.getElementById('mainChart').getContext('2d');
+            if(window.myChart) window.myChart.destroy();
+            window.myChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Ingresos', 'Gastos'],
+                    datasets: [{
+                        data: [inc, exp],
+                        backgroundColor: ['#10b981', '#ef4444'],
+                        borderWidth: 0
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#cbd5e1' } } } }
+            });
+        }
+
+        function updateDate() {
+            const opts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('currentDate').textContent = new Date().toLocaleDateString('es-ES', opts);
+        }
+
+        function openModal() { 
+            document.getElementById('addModal').classList.add('active'); 
+            toggleRecurringOptions();
+        }
+        function closeModal() { 
+            document.getElementById('addModal').classList.remove('active'); 
+            document.getElementById('txConcept').value = '';
+            document.getElementById('txAmount').value = '';
+            document.getElementById('isRecurring').checked = false;
+        }
+    </script>
+</body>
+  </html>
