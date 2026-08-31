@@ -363,26 +363,42 @@
 
         function deleteTransaction(id) {
             if(confirm("¿Borrar?")) {
-                log("🗑️ Eliminando documento...", "info");
+                log("️ Eliminando documento...", "info");
                 db.collection('transactions').doc(id).delete()
                     .then(() => log("✅ Eliminado", "success"))
                     .catch(err => log(`❌ Error borrando: ${err.message}`, "error"));
             }
         }
 
+        // ✅ FUNCIÓN CORREGIDA - SIN NECESIDAD DE ÍNDICES COMPUESTOS
         function listenTransactions() {
             if(!currentUser) return;
             
             log("👂 Escuchando cambios en tiempo real...", "info");
             
+            // Versión sin orderBy para evitar necesidad de índices compuestos
             const q = db.collection('transactions')
-                .where('uid', '==', currentUser.uid)
-                .orderBy('date', 'desc');
+                .where('uid', '==', currentUser.uid);
+                // Eliminamos orderBy('date', 'desc') para evitar índices compuestos
 
             unsubTx = q.onSnapshot(
                 (snapshot) => {
                     log(`🔄 Recibidos ${snapshot.docs.length} documentos`, "info");
-                    renderList(snapshot.docs);
+                    
+                    // Ordenamos manualmente en el cliente (más lento pero funciona sin índices)
+                    const docsArray = snapshot.docs.map(doc => ({
+                        id: doc.id,
+                        ...doc.data()
+                    }));
+                    
+                    // Ordenar por fecha descendente manualmente
+                    docsArray.sort((a, b) => {
+                        const dateA = a.date?.toDate ? a.date.toDate() : new Date(0);
+                        const dateB = b.date?.toDate ? b.date.toDate() : new Date(0);
+                        return dateB - dateA;
+                    });
+                    
+                    renderList(docsArray);
                 },
                 (error) => {
                     log(`❌ ERROR EN LISTENER: ${error.code} - ${error.message}`, "error");
@@ -407,7 +423,7 @@
             const dailyTotals = {}; // Para gráfico de línea
 
             docs.forEach(doc => {
-                const tx = doc.data();
+                const tx = doc;
                 tx.id = doc.id;
                 totalBal += tx.amount;
 
