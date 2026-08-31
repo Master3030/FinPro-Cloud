@@ -7,10 +7,35 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <!-- Firebase SDKs (Versión Modular) -->
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
+      import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-analytics.js";
+      import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
+      import { getFirestore, collection, addDoc, doc, setDoc, getDoc, query, where, orderBy, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+
+      // Tu configuración de Firebase
+      const firebaseConfig = {
+        apiKey: "AIzaSyCOUFeLCyNhB5_jfyW3BNZZyUx_gPAQrCQ",
+        authDomain: "finpro-app-5dc10.firebaseapp.com",
+        projectId: "finpro-app-5dc10",
+        storageBucket: "finpro-app-5dc10.firebasestorage.app",
+        messagingSenderId: "625095962680",
+        appId: "1:625095962680:web:c1e668b6fff0ce7f48b6cd",
+        measurementId: "G-FYGCZYJ0LD"
+      };
+
+      // Inicializar Firebase
+      const app = initializeApp(firebaseConfig);
+      const analytics = getAnalytics(app);
+      const auth = getAuth(app);
+      const db = getFirestore(app);
+
+      // Hacerlas globales para que el resto del código funcione
+      window.firebaseApp = app;
+      window.firebaseAuth = auth;
+      window.firebaseDb = db;
+    </script>
 
     <style>
         :root { --primary: #6366f1; --primary-dark: #4f46e5; --success: #10b981; --danger: #ef4444; --warning: #f59e0b; --bg-dark: #0f172a; --bg-card: rgba(30, 41, 59, 0.7); --text-primary: #f1f5f9; --text-muted: #94a3b8; --border: rgba(255, 255, 255, 0.1); }
@@ -89,7 +114,6 @@
         <div id="loginView" class="auth-card fade-in">
             <div class="logo">☁️</div>
             <h1>FinPro Cloud</h1>
-            <!-- SUBTÍTULO CORREGIDO -->
             <p class="subtitle">Tus finanzas sincronizadas</p> 
             
             <form id="loginForm" onsubmit="handleLogin(event)">
@@ -221,19 +245,9 @@
     </div>
 
     <script>
-        // ⚠️ REEMPLAZA ESTO CON TUS CLAVES DE FIREBASE
-        const firebaseConfig = {
-            apiKey: "TU_API_KEY_AQUI",
-            authDomain: "TU_PROYECTO.firebaseapp.com",
-            projectId: "TU_PROYECTO_ID",
-            storageBucket: "TU_PROYECTO.appspot.com",
-            messagingSenderId: "SENDER_ID",
-            appId: "APP_ID"
-        };
-
-        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
+        // Usar las variables globales que definimos en el módulo
+        const auth = window.firebaseAuth;
+        const db = window.firebaseDb;
 
         let currentUser = null;
         let unsubTx = null;
@@ -249,9 +263,15 @@
 
         function handleLogin(e) {
             e.preventDefault();
-            auth.signInWithEmailAndPassword(document.getElementById('loginEmail').value, document.getElementById('loginPass').value)
-                .catch(err => {
-                    const msg = err.message.replace('Firebase: ', '');
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPass').value;
+            
+            signInWithEmailAndPassword(auth, email, password)
+                .then(() => {
+                    document.getElementById('loginError').style.display = 'none';
+                })
+                .catch((error) => {
+                    const msg = error.message.replace('Firebase: ', '');
                     document.getElementById('loginError').textContent = msg;
                     document.getElementById('loginError').style.display = 'block';
                 });
@@ -260,13 +280,22 @@
         function handleRegister(e) {
             e.preventDefault();
             const email = document.getElementById('regEmail').value;
-            const pass = document.getElementById('regPass').value;
+            const password = document.getElementById('regPass').value;
             const name = document.getElementById('regName').value;
             
-            auth.createUserWithEmailAndPassword(email, pass)
-                .then(res => db.collection('users').doc(res.user.uid).set({ name, email }))
-                .catch(err => {
-                    const msg = err.message.replace('Firebase: ', '');
+            createUserWithEmailAndPassword(auth, email, password)
+                .then((userCredential) => {
+                    return setDoc(doc(db, 'users', userCredential.user.uid), { 
+                        name: name, 
+                        email: email,
+                        createdAt: new Date()
+                    });
+                })
+                .then(() => {
+                    document.getElementById('regError').style.display = 'none';
+                })
+                .catch((error) => {
+                    const msg = error.message.replace('Firebase: ', '');
                     document.getElementById('regError').textContent = msg;
                     document.getElementById('regError').style.display = 'block';
                 });
@@ -274,24 +303,30 @@
 
         function handleReset(e) {
             e.preventDefault();
-            auth.sendPasswordResetEmail(document.getElementById('resetEmail').value)
+            const email = document.getElementById('resetEmail').value;
+            
+            sendPasswordResetEmail(auth, email)
                 .then(() => {
                     document.getElementById('resetMsg').textContent = "✅ Email enviado. Revisa tu bandeja.";
                     document.getElementById('resetMsg').style.display = 'block';
                 })
-                .catch(err => alert(err.message));
+                .catch((error) => {
+                    alert(error.message);
+                });
         }
 
         function handleLogout() {
             if(unsubTx) unsubTx();
-            auth.signOut().then(() => location.reload());
+            signOut(auth).then(() => location.reload());
         }
 
-        auth.onAuthStateChanged(user => {
+        onAuthStateChanged(auth, (user) => {
             if (user) {
                 currentUser = user;
-                db.collection('users').doc(user.uid).get().then(doc => {
-                    if(doc.exists) document.getElementById('userName').textContent = `Hola, ${doc.data().name}`;
+                getDoc(doc(db, 'users', user.uid)).then((docSnap) => {
+                    if(docSnap.exists()) {
+                        document.getElementById('userName').textContent = `Hola, ${docSnap.data().name}`;
+                    }
                 });
                 document.getElementById('authScreen').classList.add('hidden');
                 document.getElementById('dashboardScreen').classList.add('active');
@@ -307,7 +342,6 @@
         function toggleRecurringOptions() {
             const isRec = document.getElementById('isRecurring').checked;
             const type = document.getElementById('txType').value;
-            // Solo mostrar opción de día de vencimiento si es Gasto y es Recurrente
             document.getElementById('dueDayGroup').style.display = (isRec && type === 'expense') ? 'block' : 'none';
         }
 
@@ -322,33 +356,37 @@
 
             const finalAmount = type === 'expense' ? -Math.abs(amount) : Math.abs(amount);
             
-            // Calcular mes actual para marcar como pagado si es un pago único o registro inicial
             const now = new Date();
             const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
 
-            db.collection('transactions').add({
+            addDoc(collection(db, 'transactions'), {
                 uid: currentUser.uid,
                 concept,
                 amount: finalAmount,
                 type,
                 isRecurring,
                 dueDay: isRecurring ? dueDay : null,
-                date: firebase.firestore.FieldValue.serverTimestamp(),
+                date: new Date(),
                 paidMonth: isRecurring ? currentMonthStr : null 
             }).then(() => closeModal());
         }
 
         function deleteTransaction(id) {
-            if(confirm("¿Borrar este movimiento?")) db.collection('transactions').doc(id).delete();
+            if(confirm("¿Borrar este movimiento?")) {
+                deleteDoc(doc(db, 'transactions', id));
+            }
         }
 
         function listenTransactions() {
-            unsubTx = db.collection('transactions')
-                .where('uid', '==', currentUser.uid)
-                .orderBy('date', 'desc')
-                .onSnapshot(snapshot => {
-                    renderList(snapshot.docs);
-                });
+            const q = query(
+                collection(db, 'transactions'),
+                where('uid', '==', currentUser.uid),
+                orderBy('date', 'desc')
+            );
+            
+            unsubTx = onSnapshot(q, (snapshot) => {
+                renderList(snapshot.docs);
+            });
         }
 
         function renderList(docs) {
@@ -357,7 +395,7 @@
             
             const now = new Date();
             const currentYear = now.getFullYear();
-            const currentMonth = now.getMonth() + 1; // 1-12
+            const currentMonth = now.getMonth() + 1;
             const todayDay = now.getDate();
             
             let totalBal = 0;
@@ -366,16 +404,14 @@
             let expenseChart = 0;
             let pendingCount = 0;
 
-            // 1. Procesar transacciones reales guardadas
             const realTransactions = [];
             docs.forEach(doc => {
                 const tx = doc.data();
                 tx.id = doc.id;
                 
-                // Cálculos generales
                 totalBal += tx.amount;
                 
-                const txDate = tx.date ? tx.date.toDate() : new Date();
+                const txDate = tx.date instanceof Date ? tx.date : tx.date.toDate ? tx.date.toDate() : new Date();
                 if(txDate.getFullYear() === currentYear && txDate.getMonth() + 1 === currentMonth) {
                     if(tx.amount > 0) incomeChart += tx.amount;
                     else {
@@ -384,54 +420,46 @@
                     }
                 }
 
-                // Lógica de Recurrencia: ¿Mostrar como pendiente este mes?
                 if (tx.isRecurring && tx.type === 'expense') {
-                    const txPaidMonth = tx.paidMonth; // ej: "2023-10"
+                    const txPaidMonth = tx.paidMonth;
                     const currentMonthStr = `${currentYear}-${String(currentMonth).padStart(2,'0')}`;
                     
-                    // Si NO ha sido pagada este mes Y el día de vencimiento ya pasó (o es hoy)
                     if (txPaidMonth !== currentMonthStr && todayDay >= tx.dueDay) {
-                        // Creamos un objeto virtual "Pendiente"
                         realTransactions.push({
                             ...tx,
                             isVirtual: true,
-                            amount: -Math.abs(tx.amount), // Forzar negativo
+                            amount: -Math.abs(tx.amount),
                             concept: tx.concept + " (Pendiente)",
                             displayDate: `Vence día ${tx.dueDay}`
                         });
                         pendingCount++;
-                        monthExp += Math.abs(tx.amount); // Contar en gastos del mes proyectado
+                        monthExp += Math.abs(tx.amount);
                         expenseChart += Math.abs(tx.amount);
                     } else {
-                        // Ya fue pagada este mes o aún no vence, mostrar normal si existe registro
                          if(txPaidMonth === currentMonthStr) {
-                             // Es el registro real del pago hecho
                              realTransactions.push(tx);
                          }
                     }
                 } else {
-                    // No es recurrente, mostrar siempre
                     realTransactions.push(tx);
                 }
             });
 
-            // Ordenar: Pendientes primero, luego por fecha
             realTransactions.sort((a, b) => {
                 if (a.isVirtual && !b.isVirtual) return -1;
                 if (!a.isVirtual && b.isVirtual) return 1;
-                const dateA = a.date ? a.date.toDate() : new Date(0);
-                const dateB = b.date ? b.date.toDate() : new Date(0);
+                const dateA = a.date instanceof Date ? a.date : a.date.toDate ? a.date.toDate() : new Date(0);
+                const dateB = b.date instanceof Date ? b.date : b.date.toDate ? b.date.toDate() : new Date(0);
                 return dateB - dateA;
             });
 
-            // Renderizar HTML
             if (realTransactions.length === 0) {
                 list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted)">Sin movimientos aún</div>';
             }
 
             realTransactions.forEach(tx => {
                 const isPos = tx.amount > 0;
-                const dateStr = tx.isVirtual ? tx.displayDate : (tx.date ? tx.date.toDate().toLocaleDateString() : '');
+                const dateStr = tx.isVirtual ? tx.displayDate : (tx.date instanceof Date ? tx.date.toLocaleDateString() : tx.date.toDate ? tx.date.toDate().toLocaleDateString() : '');
                 const itemClass = tx.isVirtual ? 'tx-item recurring' : 'tx-item';
                 
                 const div = document.createElement('div');
@@ -453,7 +481,6 @@
                 list.appendChild(div);
             });
 
-            // Actualizar UI Stats
             document.getElementById('totalBalance').textContent = `$${totalBal.toFixed(2)}`;
             document.getElementById('monthlyExpense').textContent = `$${monthExp.toFixed(2)}`;
             document.getElementById('pendingCount').textContent = `${pendingCount} facturas por pagar`;
@@ -495,4 +522,4 @@
         }
     </script>
 </body>
-  </html>
+</html>
