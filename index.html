@@ -7,14 +7,13 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
-    <!-- Firebase SDKs (Versión Modular Optimizada para GitHub Pages) -->
+    <!-- Firebase SDKs (Versión Estable 9.22.0) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
         import { getFirestore, collection, addDoc, doc, setDoc, getDoc, query, where, orderBy, onSnapshot, deleteDoc, Timestamp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
-        // Tu configuración de Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyCOUFeLCyNhB5_jfyW3BNZZyUx_gPAQrCQ",
             authDomain: "finpro-app-5dc10.firebaseapp.com",
@@ -26,25 +25,34 @@
         };
 
         try {
-            // Inicializar Firebase
+            console.log("🚀 Iniciando Firebase...");
             const app = initializeApp(firebaseConfig);
-            // Nota: Analytics puede fallar en localhost o ciertos entornos, lo envolvemos en try-catch
-            let analytics = null;
-            try { analytics = getAnalytics(app); } catch(e) { console.log("Analytics no disponible en este entorno"); }
+            
+            // Analytics es opcional y puede fallar en algunos entornos, no detenemos la app si falla
+            try { getAnalytics(app); } catch(e) { console.warn("Analytics no disponible"); }
             
             const auth = getAuth(app);
             const db = getFirestore(app);
 
-            // Exponer al objeto window para que el script de abajo pueda usarlo
+            // Exponer globalmente
             window.firebaseApp = app;
             window.firebaseAuth = auth;
             window.firebaseDb = db;
             window.firebaseLoaded = true;
+            
+            console.log("✅ Firebase cargado exitosamente!");
+            
+            // Disparar evento personalizado para avisar al otro script
+            window.dispatchEvent(new Event('firebase-ready'));
 
-            console.log("✅ Firebase cargado correctamente");
         } catch (error) {
-            console.error("❌ Error al cargar Firebase:", error);
-            alert("Error de conexión con Firebase. Revisa la consola.");
+            console.error("❌ ERROR CRÍTICO FIREBASE:", error);
+            document.body.innerHTML = `<div style="color:red; padding:20px; text-align:center; font-family:sans-serif;">
+                <h1>Error de Conexión</h1>
+                <p>No se pudo conectar con Firebase.</p>
+                <p style="font-size:12px; background:#333; padding:10px;">${error.message}</p>
+                <p>Por favor verifica tu consola (F12) o las reglas de seguridad.</p>
+            </div>`;
         }
     </script>
 
@@ -255,19 +263,16 @@
     </div>
 
     <script>
-        // Esperar a que Firebase cargue
-        function waitForFirebase() {
-            if (window.firebaseLoaded) {
-                initApp();
-            } else {
-                setTimeout(waitForFirebase, 100);
-            }
-        }
-
+        // Esperar a que Firebase esté listo
         function initApp() {
+            if (!window.firebaseAuth || !window.firebaseDb) {
+                console.error("Firebase no se cargó correctamente.");
+                alert("Error: No se pudo conectar con Firebase. Revisa la consola.");
+                return;
+            }
+
             const auth = window.firebaseAuth;
             const db = window.firebaseDb;
-
             let currentUser = null;
             let unsubTx = null;
 
@@ -292,6 +297,7 @@
                         const msg = error.message.replace('Firebase: ', '');
                         document.getElementById('loginError').textContent = msg;
                         document.getElementById('loginError').style.display = 'block';
+                        console.error(error);
                     });
             }
 
@@ -314,6 +320,7 @@
                         const msg = error.message.replace('Firebase: ', '');
                         document.getElementById('regError').textContent = msg;
                         document.getElementById('regError').style.display = 'block';
+                        console.error(error);
                     });
             }
 
@@ -325,7 +332,10 @@
                         document.getElementById('resetMsg').textContent = "✅ Email enviado. Revisa tu bandeja.";
                         document.getElementById('resetMsg').style.display = 'block';
                     })
-                    .catch((error) => alert(error.message));
+                    .catch((error) => {
+                        alert(error.message);
+                        console.error(error);
+                    });
             }
 
             window.handleLogout = function() {
@@ -380,12 +390,18 @@
                     dueDay: isRecurring ? dueDay : null,
                     date: new Date(),
                     paidMonth: isRecurring ? currentMonthStr : null 
-                }).then(() => closeModal());
+                }).then(() => {
+                    console.log("Transacción guardada");
+                    closeModal();
+                }).catch(err => {
+                    console.error("Error guardando:", err);
+                    alert("Error al guardar: " + err.message);
+                });
             }
 
             window.deleteTransaction = function(id) {
                 if(confirm("¿Borrar este movimiento?")) {
-                    deleteDoc(doc(db, 'transactions', id));
+                    deleteDoc(doc(db, 'transactions', id)).catch(err => console.error(err));
                 }
             }
 
@@ -400,7 +416,10 @@
                     renderList(snapshot.docs);
                 }, (error) => {
                     console.error("Error escuchando cambios:", error);
-                    alert("Error al cargar transacciones. Verifica las reglas de seguridad en Firebase.");
+                    // Si es error de permisos, avisa al usuario
+                    if(error.code === 'permission-denied') {
+                        alert("Error de permisos: Ve a Firebase Console > Firestore > Reglas y asegúrate de permitir lecturas/escrituras.");
+                    }
                 });
             }
 
@@ -426,7 +445,6 @@
                     
                     totalBal += tx.amount;
                     
-                    // Manejo seguro de fechas
                     let txDate;
                     if (tx.date instanceof Date) txDate = tx.date;
                     else if (tx.date && tx.date.toDate) txDate = tx.date.toDate();
@@ -546,8 +564,19 @@
             }
         }
 
-        // Iniciar la espera de Firebase
-        waitForFirebase();
+        // Escuchar evento de ready o intentar iniciar directamente
+        if (window.firebaseLoaded) {
+            initApp();
+        } else {
+            window.addEventListener('firebase-ready', initApp);
+            // Fallback por si el evento se pierde
+            setTimeout(() => {
+                if (!window.firebaseLoaded) {
+                    console.warn("Timeout esperando Firebase... intentando iniciar igual.");
+                    initApp();
+                }
+            }, 2000);
+        }
     </script>
 </body>
 </html>
