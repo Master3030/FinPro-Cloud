@@ -3,175 +3,542 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FinTrack Pro v3.0 | Ultimate Debug</title>
+    <title>FinTrack Pro | Gestión de Finanzas Personales</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
     
-    <!-- Firebase Compat (Más estable) -->
+    <!-- Firebase Compat -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 
     <style>
         :root {
-            --primary: #6366f1; --success: #10b981; --danger: #ef4444; --warning: #f59e0b;
-            --bg-dark: #0f172a; --bg-card: rgba(30, 41, 59, 0.8); --text-primary: #f1f5f9; --text-muted: #94a3b8;
-            --border: rgba(255, 255, 255, 0.1);
+            --primary: #6366f1; --primary-light: #818cf8; --primary-dark: #4f46e5;
+            --success: #10b981; --danger: #ef4444; --warning: #f59e0b; --info: #06b6d4;
+            --bg-dark: #0f172a; --bg-card: rgba(30, 41, 59, 0.8); --bg-input: rgba(15, 23, 42, 0.6);
+            --text-primary: #f1f5f9; --text-muted: #94a3b8; --border: rgba(255, 255, 255, 0.1);
         }
-        * { margin: 0; padding: 0; box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
-        body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: var(--text-primary); min-height: 100vh; padding-bottom: 120px; }
-        
-        /* Auth Styles */
-        #authScreen { position: fixed; inset: 0; background: var(--bg-dark); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        #authScreen.hidden { display: none; }
-        .auth-card { background: var(--bg-card); backdrop-filter: blur(20px); border: 1px solid var(--border); border-radius: 24px; padding: 40px 30px; width: 100%; max-width: 380px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
-        .logo { width: 80px; height: 80px; background: linear-gradient(135deg, var(--primary), #06b6d4); border-radius: 20px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 32px; }
-        h1 { font-family: 'Poppins'; font-size: 28px; margin-bottom: 8px; background: linear-gradient(135deg, #fff, var(--text-muted)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        input, select { width: 100%; padding: 12px; background: rgba(15,23,42,0.6); border: 1px solid var(--border); border-radius: 10px; color: white; margin-bottom: 15px; }
-        .btn-primary { width: 100%; padding: 14px; background: var(--primary); border: none; border-radius: 12px; color: white; font-weight: 600; cursor: pointer; }
-        
-        /* Dashboard */
+
+        * {
+            margin: 0; padding: 0; box-sizing: border-box; outline: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding-bottom: 120px;
+        }
+
         .app-container { max-width: 480px; margin: 0 auto; padding: 20px; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
-        .stat-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 16px; }
-        .chart-section { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 20px; }
+
+        /* AUTH SCREEN */
+        #authScreen {
+            position: fixed; inset: 0; background: var(--bg-dark); z-index: 1000;
+            display: flex; align-items: center; justify-content: center; padding: 20px;
+        }
+        #authScreen.hidden { display: none; }
+
+        .auth-card {
+            background: var(--bg-card); backdrop-filter: blur(20px);
+            border: 1px solid var(--border); border-radius: 24px;
+            padding: 40px 30px; width: 100%; max-width: 380px;
+            text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+
+        .logo {
+            width: 80px; height: 80px;
+            background: linear-gradient(135deg, var(--primary), var(--info));
+            border-radius: 20px; margin: 0 auto 20px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 32px; box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3);
+        }
+
+        h1 {
+            font-family: 'Poppins', sans-serif; font-size: 28px; font-weight: 700;
+            margin-bottom: 8px; background: linear-gradient(135deg, #fff, var(--text-muted));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle { color: var(--text-muted); font-size: 14px; margin-bottom: 30px; }
+
+        input, select {
+            width: 100%; padding: 12px; background: var(--bg-input);
+            border: 1px solid var(--border); border-radius: 10px;
+            color: white; font-size: 14px; margin-bottom: 15px;
+            font-family: 'Inter', sans-serif; transition: border 0.2s;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+        }
+
+        .btn-primary {
+            width: 100%; padding: 14px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border: none; border-radius: 12px; color: white; font-weight: 600;
+            cursor: pointer; transition: all 0.3s; font-size: 14px;
+        }
+
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(99, 102, 241, 0.4); }
+        .btn-primary:active { transform: translateY(0); }
+
+        .auth-switch { margin-top: 20px; font-size: 14px; color: var(--text-muted); }
+        .auth-switch a { color: var(--primary-light); cursor: pointer; font-weight: 600; }
+
+        .error-msg { color: var(--danger); font-size: 12px; margin-top: 10px; padding: 10px; background: rgba(239, 68, 68, 0.1); border-radius: 8px; display: none; }
+        .error-msg.show { display: block; }
+
+        /* DASHBOARD */
+        #dashboardScreen { display: none; }
+        #dashboardScreen.active { display: block; }
+
+        .header {
+            display: flex; justify-content: space-between; align-items: flex-start;
+            margin-bottom: 24px; gap: 10px;
+        }
+
+        .header-left h2 {
+            font-family: 'Poppins', sans-serif; font-size: 24px; font-weight: 700;
+        }
+
+        .currency-badge {
+            background: rgba(99, 102, 241, 0.2); border: 1px solid var(--primary);
+            color: var(--primary-light); padding: 4px 10px; border-radius: 20px;
+            font-size: 11px; font-weight: 600; white-space: nowrap;
+        }
+
+        .btn-logout {
+            background: rgba(239, 68, 68, 0.1); color: var(--danger);
+            border: 1px solid rgba(239, 68, 68, 0.3); padding: 8px 14px;
+            border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600;
+        }
+
+        .btn-logout:hover { background: rgba(239, 68, 68, 0.2); }
+
+        .stats-grid {
+            display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 16px; padding: 16px; transition: all 0.3s;
+        }
+
+        .stat-card:hover { border-color: var(--primary); transform: translateY(-2px); }
+
+        .stat-label { font-size: 9px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; }
+        .stat-value { font-family: 'Poppins', sans-serif; font-size: 16px; font-weight: 700; margin-top: 8px; }
+
+        /* BUDGET SECTION */
+        .budget-section {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 16px; padding: 20px; margin-bottom: 20px;
+        }
+
+        .budget-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 12px; font-weight: 600;
+        }
+
+        .budget-controls {
+            display: flex; gap: 8px; margin-bottom: 15px;
+        }
+
+        .budget-input {
+            flex: 1; padding: 10px; background: var(--bg-input);
+            border: 1px solid var(--border); border-radius: 8px;
+            color: white; font-size: 13px; margin: 0 !important;
+        }
+
+        .budget-btn {
+            padding: 10px 16px; background: var(--primary);
+            border: none; border-radius: 8px; color: white;
+            cursor: pointer; font-size: 12px; font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .budget-btn:hover { transform: translateY(-1px); }
+
+        .progress-bar {
+            width: 100%; height: 12px; background: rgba(255, 255, 255, 0.05);
+            border-radius: 6px; overflow: hidden; margin-bottom: 12px;
+        }
+
+        .progress-fill {
+            height: 100%; background: linear-gradient(90deg, var(--success), var(--primary));
+            border-radius: 6px; transition: width 0.5s ease, background 0.3s ease;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+        }
+
+        .budget-info {
+            display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;
+            font-size: 11px; color: var(--text-muted);
+            margin-top: 12px;
+        }
+
+        .budget-info-item {
+            background: rgba(255, 255, 255, 0.03); padding: 8px;
+            border-radius: 8px; border-left: 3px solid var(--primary);
+        }
+
+        .budget-info-value {
+            font-family: 'Poppins', sans-serif; font-size: 13px;
+            font-weight: 700; color: var(--text-primary); margin-top: 4px;
+        }
+
+        /* CHART SECTION */
+        .chart-section {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 16px; padding: 20px; margin-bottom: 20px;
+        }
+
+        .chart-title { font-weight: 600; margin-bottom: 15px; font-size: 14px; }
+
+        .chart-tabs {
+            display: flex; gap: 8px; margin-bottom: 15px;
+            border-bottom: 1px solid var(--border); padding-bottom: 10px;
+        }
+
+        .chart-tab {
+            padding: 6px 12px; background: transparent; border: none;
+            color: var(--text-muted); cursor: pointer; font-size: 12px;
+            font-weight: 600; transition: all 0.2s; border-bottom: 2px solid transparent;
+        }
+
+        .chart-tab.active {
+            color: var(--primary); border-bottom-color: var(--primary);
+        }
+
+        .chart-tab:hover { color: var(--primary-light); }
+
+        .chart-container { height: 200px; position: relative; margin-top: 10px; }
+
+        /* TRANSACTIONS LIST */
+        .section-header {
+            font-weight: 600; margin-bottom: 16px; font-size: 14px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+
         .tx-list { display: flex; flex-direction: column; gap: 10px; }
-        .tx-item { background: rgba(255,255,255,0.05); padding: 14px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; }
-        .tx-item.recurring { border-left: 4px solid var(--warning); }
-        .tx-item.pending { border-left: 4px solid var(--danger); opacity: 0.8; }
-        
-        /* Debug Console */
+
+        .tx-item {
+            background: rgba(255, 255, 255, 0.05); padding: 14px;
+            border-radius: 12px; display: flex; justify-content: space-between;
+            align-items: center; border-left: 4px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tx-item:hover { background: rgba(255, 255, 255, 0.08); transform: translateX(4px); }
+
+        .tx-item.recurring { border-left-color: var(--warning); background: rgba(245, 158, 11, 0.05); }
+        .tx-item.pending { border-left-color: var(--danger); background: rgba(239, 68, 68, 0.05); }
+
+        .tx-main { flex: 1; }
+        .tx-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+        .badge-recurring { font-size: 9px; background: var(--warning); color: black; padding: 2px 6px; border-radius: 4px; }
+        .badge-pending { font-size: 9px; background: var(--danger); color: white; padding: 2px 6px; border-radius: 4px; }
+        .tx-meta { font-size: 11px; color: var(--text-muted); }
+        .tx-amount { font-weight: 700; font-size: 15px; margin-left: 10px; }
+        .tx-amount.pos { color: var(--success); }
+        .tx-amount.neg { color: var(--danger); }
+
+        .btn-delete {
+            background: transparent; color: var(--text-muted); border: none;
+            font-size: 18px; cursor: pointer; margin-left: 8px; transition: color 0.2s;
+        }
+        .btn-delete:hover { color: var(--danger); }
+
+        .empty-state {
+            text-align: center; padding: 30px 20px; color: var(--text-muted);
+        }
+
+        /* MODAL */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85);
+            z-index: 200; display: none; align-items: flex-end; justify-content: center;
+        }
+
+        .modal-overlay.active { display: flex; }
+
+        .modal-content {
+            background: #1e293b; width: 100%; max-width: 480px;
+            border-radius: 24px 24px 0 0; padding: 24px;
+            border-top: 1px solid var(--border); animation: slideUp 0.3s ease-out;
+            max-height: 90vh; overflow-y: auto;
+        }
+
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+        .modal-content h3 {
+            font-family: 'Poppins', sans-serif; font-size: 18px; margin-bottom: 20px;
+        }
+
+        .checkbox-group {
+            display: flex; align-items: center; gap: 10px; margin: 15px 0;
+            background: rgba(0, 0, 0, 0.2); padding: 12px; border-radius: 10px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 18px; height: 18px; margin: 0; cursor: pointer;
+        }
+
+        .checkbox-group label {
+            margin: 0; font-size: 13px; color: var(--text-primary); cursor: pointer; flex: 1;
+        }
+
+        .btn-cancel {
+            width: 100%; padding: 12px; margin-top: 10px; background: transparent;
+            border: 1px solid var(--border); color: var(--text-muted);
+            border-radius: 10px; cursor: pointer; font-weight: 600; transition: all 0.2s;
+        }
+
+        .btn-cancel:hover { border-color: var(--primary); color: var(--primary); }
+
+        /* FAB */
+        .fab {
+            position: fixed; bottom: 130px; right: 20px; width: 56px; height: 56px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 50%; color: white; font-size: 28px; border: none;
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.5); cursor: pointer;
+            display: flex; align-items: center; justify-content: center; z-index: 90;
+            transition: all 0.3s;
+        }
+
+        .fab:hover { transform: scale(1.1); }
+        .fab:active { transform: scale(0.95); }
+
+        /* DEBUG CONSOLE */
         #debugConsole {
             position: fixed; bottom: 0; left: 0; right: 0;
-            background: #000; color: #0f0; font-family: monospace;
-            font-size: 11px; padding: 10px; height: 100px; overflow-y: auto;
-            border-top: 2px solid var(--primary); z-index: 2000;
-            display: none; opacity: 0.9;
+            background: #000; color: #0f0; font-family: 'Courier New', monospace;
+            font-size: 11px; padding: 10px; height: 120px; overflow-y: auto;
+            border-top: 2px solid var(--primary); z-index: 2000; display: none;
         }
+
         #debugConsole.visible { display: block; }
-        .log-entry { margin-bottom: 4px; border-bottom: 1px solid #333; padding-bottom: 2px; }
+
+        .log-entry {
+            margin-bottom: 4px; padding: 2px 0;
+            border-bottom: 1px solid #333;
+        }
+
         .log-error { color: #ff5555; }
         .log-success { color: #55ff55; }
         .log-info { color: #55ffff; }
+
         #toggleDebug {
-            position: fixed; bottom: 110px; right: 20px;
+            position: fixed; bottom: 150px; right: 20px;
             background: var(--primary); color: white; border: none;
             padding: 8px 12px; border-radius: 20px; font-size: 12px;
-            cursor: pointer; z-index: 2001; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            cursor: pointer; z-index: 2001; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            transition: all 0.2s;
         }
 
-        /* Modal & FAB */
-        .fab { position: fixed; bottom: 130px; right: 20px; width: 56px; height: 56px; background: var(--primary); border-radius: 50%; color: white; font-size: 28px; border: none; cursor: pointer; box-shadow: 0 8px 25px rgba(99,102,241,0.5); display: flex; align-items: center; justify-content: center; z-index: 90; }
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 200; display: none; align-items: flex-end; justify-content: center; }
-        .modal-overlay.active { display: flex; }
-        .modal-content { background: #1e293b; width: 100%; max-width: 480px; border-radius: 24px 24px 0 0; padding: 24px; }
-        .checkbox-group { display: flex; align-items: center; gap: 10px; margin: 15px 0; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; }
+        #toggleDebug:hover { transform: translateY(-2px); }
+
+        .status-bar {
+            position: fixed; top: 0; left: 0; right: 0;
+            padding: 12px 20px; text-align: center; font-size: 12px;
+            z-index: 2000; animation: slideDown 0.3s ease-out;
+            display: none;
+        }
+
+        .status-bar.show { display: block; }
+        .status-bar.success { background: var(--success); color: white; }
+        .status-bar.error { background: var(--danger); color: white; }
+
+        @keyframes slideDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
+
+        @media (max-width: 400px) {
+            .app-container { padding: 12px; }
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+            h1 { font-size: 24px; }
+        }
     </style>
 </head>
 <body>
 
     <!-- AUTH SCREEN -->
     <div id="authScreen">
-        <div class="auth-card">
-            <div class="logo">️</div>
-            <h1>FinTrack Pro v3</h1>
-            <p style="color:var(--text-muted); margin-bottom:20px;">Con Depuración Avanzada</p>
+        <div class="auth-card fade-in">
+            <div class="logo">💰</div>
+            <h1>FinTrack Pro</h1>
+            <p class="subtitle">Controla tus finanzas personales</p>
+
             <form id="loginForm" onsubmit="handleLogin(event)">
                 <input type="email" id="loginEmail" placeholder="Email" required>
                 <input type="password" id="loginPass" placeholder="Contraseña" required>
                 <button type="submit" class="btn-primary">Entrar</button>
+                <div id="loginError" class="error-msg"></div>
             </form>
-            <div style="margin-top:15px; font-size:12px; color:var(--text-muted);">
-                <a onclick="showRegister()" style="color:var(--primary); cursor:pointer;">Crear cuenta</a>
+
+            <div class="auth-switch" style="text-align: center;">
+                <a onclick="showRegister()">¿Primera vez? Registrarse</a>
             </div>
         </div>
     </div>
 
     <!-- DASHBOARD -->
-    <div id="dashboardScreen" style="display:none;">
+    <div id="dashboardScreen" class="active">
         <div class="app-container">
             <div class="header">
-                <div>
-                    <p id="currentDate" style="font-size:12px; color:var(--text-muted);"></p>
-                    <h2 id="userName" style="font-family:'Poppins'; font-size:22px;">Hola...</h2>
+                <div class="header-left">
+                    <p id="currentDate" style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;"></p>
+                    <h2 id="userName">Hola...</h2>
                 </div>
-                <button onclick="handleLogout()" style="background:rgba(239,68,68,0.2); color:var(--danger); border:none; padding:6px 12px; border-radius:8px; cursor:pointer;">Salir</button>
+                <div style="display: flex; flex-direction: column; gap: 8px; align-items: flex-end;">
+                    <span class="currency-badge" id="currencyBadge">🌍 Detectando...</span>
+                    <button class="btn-logout" onclick="handleLogout()">Salir</button>
+                </div>
             </div>
 
+            <!-- STATS -->
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div style="font-size:10px; color:var(--text-muted);">Balance Total</div>
-                    <div id="totalBalance" style="font-family:'Poppins'; font-size:20px; font-weight:700;">$0.00</div>
+                    <div class="stat-label">Balance</div>
+                    <div class="stat-value" id="totalBalance">$0.00</div>
                 </div>
                 <div class="stat-card">
-                    <div style="font-size:10px; color:var(--text-muted);">Gastos Mes</div>
-                    <div id="monthlyExpense" style="font-family:'Poppins'; font-size:20px; font-weight:700; color:var(--danger);">$0.00</div>
+                    <div class="stat-label">Ingresos</div>
+                    <div class="stat-value" style="color: var(--success);" id="totalIncome">$0.00</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Gastos</div>
+                    <div class="stat-value" style="color: var(--danger);" id="totalExpense">$0.00</div>
                 </div>
             </div>
 
-            <!-- Gráfico de Línea (Tendencia) -->
-            <div class="chart-section">
-                <div style="font-weight:600; margin-bottom:10px;">Tendencia Mensual</div>
-                <div style="height:150px;"><canvas id="lineChart"></canvas></div>
+            <!-- BUDGET SECTION -->
+            <div class="budget-section">
+                <div class="budget-header">
+                    <span>💼 Presupuesto Mensual</span>
+                    <span id="budgetPercent" style="font-weight: 700; color: var(--primary);">0%</span>
+                </div>
+
+                <div class="budget-controls">
+                    <input type="number" id="budgetInput" class="budget-input" placeholder="Monto disponible" step="10">
+                    <button class="budget-btn" onclick="setBudget()">Guardar</button>
+                </div>
+
+                <div class="progress-bar">
+                    <div class="progress-fill" id="budgetFill" style="width: 0%"></div>
+                </div>
+
+                <div class="budget-info">
+                    <div class="budget-info-item">
+                        <div>Disponible</div>
+                        <div class="budget-info-value" id="budgetRemaining">$2,000.00</div>
+                    </div>
+                    <div class="budget-info-item">
+                        <div>Gastado</div>
+                        <div class="budget-info-value" id="budgetSpent">$0.00</div>
+                    </div>
+                    <div class="budget-info-item">
+                        <div>Límite</div>
+                        <div class="budget-info-value" id="budgetLimit">$2,000.00</div>
+                    </div>
+                </div>
             </div>
 
-            <!-- Gráfico de Dona (Distribución) -->
+            <!-- CHARTS -->
             <div class="chart-section">
-                <div style="font-weight:600; margin-bottom:10px;">Distribución</div>
-                <div style="height:150px;"><canvas id="doughnutChart"></canvas></div>
+                <div class="chart-title">📊 Análisis Financiero</div>
+                <div class="chart-tabs">
+                    <button class="chart-tab active" onclick="switchChart('doughnut')">Proporción</button>
+                    <button class="chart-tab" onclick="switchChart('bar')">Comparativa</button>
+                    <button class="chart-tab" onclick="switchChart('line')">Tendencia</button>
+                </div>
+                <div class="chart-container">
+                    <canvas id="mainChart"></canvas>
+                </div>
             </div>
 
-            <div style="font-weight:600; margin-bottom:10px;">Movimientos</div>
-            <div id="txList" class="tx-list">
-                <div style="text-align:center; padding:20px; color:var(--text-muted);">Cargando...</div>
+            <!-- TRANSACTIONS -->
+            <div>
+                <div class="section-header">
+                    <span>📝 Movimientos</span>
+                    <span style="font-size: 11px; color: var(--text-muted);" id="pendingCount"></span>
+                </div>
+                <div id="txList" class="tx-list">
+                    <div class="empty-state">
+                        <p>Sin movimientos</p>
+                        <p style="font-size: 12px; margin-top: 8px;">Toca + para agregar uno</p>
+                    </div>
+                </div>
             </div>
+            <div style="height: 80px;"></div>
         </div>
     </div>
 
+    <!-- STATUS BAR -->
+    <div class="status-bar" id="statusBar"></div>
+
+    <!-- FAB -->
+    <button class="fab" onclick="openModal()" title="Agregar movimiento">+</button>
+
+    <!-- DEBUG TOGGLE -->
+    <button id="toggleDebug" onclick="toggleDebug()">🐛 Logs</button>
+
     <!-- DEBUG CONSOLE -->
-    <button id="toggleDebug" onclick="toggleDebug()">🐛 Ver Logs</button>
     <div id="debugConsole">
-        <div style="position:sticky; top:0; background:#000; padding-bottom:5px; border-bottom:1px solid #333; margin-bottom:5px;">
-            <strong>DEBUG CONSOLE v3.0</strong> <span style="float:right; cursor:pointer;" onclick="clearLogs()">✕ Limpiar</span>
+        <div style="font-weight: bold; padding-bottom: 5px; border-bottom: 1px solid #333; margin-bottom: 5px;">
+            DEBUG CONSOLE v4.1
+            <span style="float: right; cursor: pointer;" onclick="clearLogs()">✕</span>
         </div>
         <div id="logContent"></div>
     </div>
 
-    <!-- FAB & MODAL -->
-    <button class="fab" onclick="openModal()">+</button>
+    <!-- MODAL -->
     <div class="modal-overlay" id="addModal">
         <div class="modal-content">
-            <h3 style="margin-bottom:15px;">Nuevo Movimiento</h3>
-            <select id="txType" onchange="toggleRecurringOptions()">
-                <option value="expense">Gasto</option>
-                <option value="income">Ingreso</option>
-            </select>
-            <input type="text" id="txConcept" placeholder="Concepto">
-            <input type="number" id="txAmount" placeholder="Monto" step="0.01">
-            
-            <div class="checkbox-group">
-                <input type="checkbox" id="isRecurring" onchange="toggleRecurringOptions()">
-                <label>Factura Recurrente</label>
-            </div>
-            
-            <div id="dueDayGroup" style="display:none; margin-bottom:15px;">
-                <label style="font-size:12px; color:var(--text-muted);">Vence el día:</label>
-                <select id="dueDay">
-                    <option value="1">Día 1</option><option value="5">Día 5</option>
-                    <option value="10">Día 10</option><option value="15">Día 15</option>
-                    <option value="20">Día 20</option><option value="25">Día 25</option>
-                    <option value="30">Día 30</option>
+            <h3>➕ Nuevo Movimiento</h3>
+
+            <div style="margin-bottom: 15px;">
+                <label style="font-size: 12px; color: var(--text-muted); margin-bottom: 6px; display: block;">Tipo</label>
+                <select id="txType" onchange="toggleRecurringOptions()">
+                    <option value="expense">Gasto</option>
+                    <option value="income">Ingreso</option>
                 </select>
             </div>
 
-            <button class="btn-primary" onclick="saveTransaction()">Guardar en Nube</button>
-            <button onclick="closeModal()" style="width:100%; padding:12px; margin-top:10px; background:transparent; border:1px solid var(--border); color:var(--text-muted); border-radius:10px;">Cancelar</button>
+            <div style="margin-bottom: 15px;">
+                <label style="font-size: 12px; color: var(--text-muted); margin-bottom: 6px; display: block;">Concepto</label>
+                <input type="text" id="txConcept" placeholder="Ej: Almuerzo, Sueldo, etc" required style="margin-bottom: 0;">
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label style="font-size: 12px; color: var(--text-muted); margin-bottom: 6px; display: block;">Monto (<span id="currencySymbolModal">$</span>)</label>
+                <input type="number" id="txAmount" placeholder="0.00" step="0.01" min="0" required style="margin-bottom: 0;">
+            </div>
+
+            <div class="checkbox-group">
+                <input type="checkbox" id="isRecurring" onchange="toggleRecurringOptions()">
+                <label for="isRecurring">Factura recurrente (mensual)</label>
+            </div>
+
+            <div id="dueDayGroup" style="display: none; margin-bottom: 15px;">
+                <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 6px;">Vence el día:</label>
+                <select id="dueDay">
+                    <option value="1">1</option><option value="5">5</option>
+                    <option value="10">10</option><option value="15">15</option>
+                    <option value="20">20</option><option value="25">25</option>
+                    <option value="30">30</option>
+                </select>
+            </div>
+
+            <button class="btn-primary" onclick="saveTransaction()">💾 Guardar en Nube</button>
+            <button type="button" class="btn-cancel" onclick="closeModal()">Cancelar</button>
         </div>
     </div>
 
     <script>
-        // ================= CONFIGURACIÓN FIREBASE =================
+        // ==================== CONFIG FIREBASE ====================
         const firebaseConfig = {
             apiKey: "AIzaSyCOUFeLCyNhB5_jfyW3BNZZyUx_gPAQrCQ",
             authDomain: "finpro-app-5dc10.firebaseapp.com",
@@ -181,53 +548,51 @@
             appId: "1:625095962680:web:c1e668b6fff0ce7f48b6cd"
         };
 
-        // Inicialización con manejo de errores robusto
         try {
             firebase.initializeApp(firebaseConfig);
-            log("✅ Firebase inicializado correctamente", "success");
+            log("✅ Firebase inicializado", "success");
         } catch (e) {
-            log("❌ ERROR CRÍTICO AL INICIAR FIREBASE: " + e.message, "error");
+            log("❌ ERROR FIREBASE: " + e.message, "error");
         }
 
         const auth = firebase.auth();
         const db = firebase.firestore();
-        
-        // Forzar polling largo para evitar problemas de CORS en GitHub Pages
         db.settings({ experimentalForceLongPolling: true });
-        log("⚙️ Configurado ForceLongPolling para compatibilidad GitHub Pages", "info");
 
-        // Variables Globales
+        // ==================== VARIABLES GLOBALES ====================
         let currentUser = null;
         let unsubTx = null;
         let currencySymbol = '$';
-        let lineChartInst = null;
-        let doughnutChartInst = null;
+        let currencyCode = 'USD';
+        let budgetLimit = 2000;
+        let currentChartType = 'doughnut';
+        let mainChart = null;
 
-        // ================= SISTEMA DE LOGS (DEBUG) =================
+        // ==================== SISTEMA DE LOGS ====================
         function log(msg, type = "info") {
-            const consoleDiv = document.getElementById('debugConsole');
             const logContent = document.getElementById('logContent');
             const time = new Date().toLocaleTimeString();
             const entry = document.createElement('div');
             entry.className = `log-entry log-${type}`;
-            entry.textContent = `[${time}] ${msg}`;
+            entry.innerHTML = `<strong>[${time}]</strong> ${msg}`;
             logContent.prepend(entry);
-            console.log(`[FinTrack] ${msg}`);
             
-            if(!consoleDiv.classList.contains('visible')) {
-                // Opcional: Mostrar notificación visual si hay error
-                if(type === 'error') toggleDebug(true);
+            // Limitar logs a 50
+            if (logContent.children.length > 50) {
+                logContent.removeChild(logContent.lastChild);
             }
+            
+            console.log(`[FinTrack] ${msg}`);
         }
 
-        function toggleDebug(forceShow = false) {
+        function toggleDebug(show) {
             const el = document.getElementById('debugConsole');
-            if(forceShow || !el.classList.contains('visible')) {
+            if (show || !el.classList.contains('visible')) {
                 el.classList.add('visible');
-                document.getElementById('toggleDebug').textContent = '🐛 Ocultar Logs';
+                document.getElementById('toggleDebug').textContent = '🐛 Ocultar';
             } else {
                 el.classList.remove('visible');
-                document.getElementById('toggleDebug').textContent = '🐛 Ver Logs';
+                document.getElementById('toggleDebug').textContent = '🐛 Logs';
             }
         }
 
@@ -235,81 +600,174 @@
             document.getElementById('logContent').innerHTML = '';
         }
 
-        // ================= DETECCIÓN DE MONEDA LOCAL =================
+        function showStatus(msg, type = 'success') {
+            const bar = document.getElementById('statusBar');
+            bar.textContent = msg;
+            bar.className = `status-bar show ${type}`;
+            setTimeout(() => bar.classList.remove('show'), 3000);
+        }
+
+        // ==================== DETECCIÓN DE MONEDA POR PAÍS ====================
         function detectCurrency() {
+            log("🌍 Detectando moneda local...", "info");
+            
             try {
-                const locale = navigator.language || 'en-US';
-                const region = locale.split('-')[1]; // Ej: 'MX' de 'es-MX'
+                // Método 1: Por locale del navegador
+                const locale = navigator.language || 'es-ES';
+                const localeRegion = locale.split('-')[1] || locale;
                 
-                const currencyMap = {
-                    'MX': 'MXN', 'CO': 'COP', 'PE': 'PEN', 'AR': 'ARS', 
-                    'CL': 'CLP', 'ES': 'EUR', 'US': 'USD', 'VE': 'VES'
+                // Mapa de países y sus monedas
+                const countryMap = {
+                    'MX': 'MXN', 'CO': 'COP', 'PE': 'PEN', 'AR': 'ARS', 'CL': 'CLP',
+                    'ES': 'EUR', 'US': 'USD', 'VE': 'VES', 'EC': 'USD', 'GT': 'GTQ',
+                    'HN': 'HNL', 'NI': 'NIO', 'CR': 'CRC', 'PA': 'PAB', 'DO': 'DOP',
+                    'CU': 'CUP', 'SV': 'USD', 'BR': 'BRL', 'UY': 'UYU', 'PY': 'PYG',
+                    'BO': 'BOB', 'DE': 'EUR', 'FR': 'EUR', 'IT': 'EUR', 'GB': 'GBP',
+                    'JP': 'JPY', 'IN': 'INR', 'CN': 'CNY', 'MZ': 'MZN'
                 };
                 
-                const currencyCode = currencyMap[region] || 'USD';
-                const formatter = new Intl.NumberFormat(locale, { style: 'currency', currency: currencyCode });
+                const currencyCode = countryMap[localeRegion.toUpperCase()] || 'USD';
                 
-                // Extraer símbolo probando con 1
-                currencySymbol = formatter.format(1).replace('1', '').trim();
-                log(`💰 Moneda detectada: ${currencyCode} (${currencySymbol})`, "success");
+                // Crear formatter para obtener símbolo
+                const formatter = new Intl.NumberFormat(locale, {
+                    style: 'currency',
+                    currency: currencyCode,
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0
+                });
+                
+                // Extraer símbolo
+                const parts = formatter.formatToParts(1);
+                const currencyPart = parts.find(p => p.type === 'currency');
+                currencySymbol = currencyPart ? currencyPart.value : getSymbolForCode(currencyCode);
+                
+                log(`✅ Moneda: ${currencyCode} (${currencySymbol}) - Región: ${localeRegion}`, "success");
+                
+                // Actualizar UI
+                document.getElementById('currencyBadge').textContent = currencySymbol + ' ' + currencyCode;
+                document.getElementById('currencySymbolModal').textContent = currencySymbol;
+                
+                // Guardar en localStorage
+                localStorage.setItem('currencySymbol', currencySymbol);
+                localStorage.setItem('currencyCode', currencyCode);
+                
             } catch (e) {
-                log("️ No se pudo detectar moneda local, usando $ por defecto", "info");
-                currencySymbol = '$';
+                log("⚠️ Error detectando moneda: " + e.message, "info");
+                currencySymbol = localStorage.getItem('currencySymbol') || '$';
+                currencyCode = localStorage.getItem('currencyCode') || 'USD';
+                document.getElementById('currencyBadge').textContent = currencySymbol + ' ' + currencyCode;
             }
         }
 
-        // ================= AUTH LOGIC =================
+        function getSymbolForCode(code) {
+            const symbols = {
+                'USD': '$', 'EUR': '€', 'MXN': '$', 'ARS': '$', 'COP': '$',
+                'PEN': 'S/', 'CLP': '$', 'VES': 'Bs.', 'CRC': '₡', 'VND': '₫',
+                'THB': '฿', 'INR': '₹', 'JPY': '¥', 'GBP': '£', 'CNY': '¥',
+                'BRL': 'R$', 'KRW': '₩', 'RUB': '₽', 'ZAR': 'R'
+            };
+            return symbols[code] || '$';
+        }
+
+        // ==================== FORMATO DE DINERO ====================
+        function formatMoney(amount) {
+            return `${currencySymbol}${Math.abs(amount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
+        }
+
+        // ==================== AUTENTICACIÓN ====================
         function showRegister() {
-            // Implementación simple para demo
-            alert("Función de registro habilitada en la consola de depuración. Intenta registrarte con el formulario principal.");
-            // Aquí podrías expandir la UI para mostrar el formulario de registro completo
+            log("📝 Función de registro aún no disponible", "info");
+            alert("Para crear cuenta, usa Firebase Console o espera la siguiente versión");
         }
 
         function handleLogin(e) {
             e.preventDefault();
             const email = document.getElementById('loginEmail').value;
             const pass = document.getElementById('loginPass').value;
-            
-            log(`🔑 Intentando login con: ${email}`, "info");
-            
+
+            log(`🔑 Intentando login: ${email}`, "info");
+
             auth.signInWithEmailAndPassword(email, pass)
-                .then((userCredential) => {
-                    log("✅ Login exitoso!", "success");
+                .then(() => {
+                    log("✅ ¡Login exitoso!", "success");
+                    showStatus("¡Bienvenido!", "success");
                 })
                 .catch((error) => {
-                    log(` Error Login: ${error.code} - ${error.message}`, "error");
-                    alert("Error: " + error.message);
+                    log(`❌ Error: ${error.code} - ${error.message}`, "error");
+                    document.getElementById('loginError').textContent = error.message;
+                    document.getElementById('loginError').classList.add('show');
+                    toggleDebug(true);
                 });
         }
 
         function handleLogout() {
-            if(unsubTx) unsubTx();
             auth.signOut().then(() => {
                 log("👋 Sesión cerrada", "info");
                 location.reload();
             });
         }
 
-        // Monitor de Auth
         auth.onAuthStateChanged((user) => {
             if (user) {
                 currentUser = user;
-                log(`👤 Usuario autenticado: ${user.email} (UID: ${user.uid})`, "success");
+                log(`👤 Usuario: ${user.email} | UID: ${user.uid}`, "success");
                 document.getElementById('authScreen').classList.add('hidden');
-                document.getElementById('dashboardScreen').style.display = 'block';
+                document.getElementById('dashboardScreen').classList.add('active');
                 document.getElementById('userName').textContent = `Hola, ${user.email.split('@')[0]}`;
+                
                 detectCurrency();
+                loadUserSettings();
                 updateDate();
                 listenTransactions();
             } else {
                 currentUser = null;
-                log(" No hay usuario autenticado", "info");
+                log("❌ Sin autenticación", "info");
                 document.getElementById('authScreen').classList.remove('hidden');
-                document.getElementById('dashboardScreen').style.display = 'none';
+                document.getElementById('dashboardScreen').classList.remove('active');
             }
         });
 
-        // ================= TRANSACCIONES Y FIRESTORE =================
+        // ==================== CONFIGURACIÓN DE USUARIO ====================
+        function loadUserSettings() {
+            log("⚙️ Cargando configuración del usuario...", "info");
+            db.collection('users').doc(currentUser.uid).get()
+                .then((doc) => {
+                    if (doc.exists) {
+                        budgetLimit = doc.data().budgetLimit || 2000;
+                        log(`✅ Presupuesto: ${formatMoney(budgetLimit)}`, "success");
+                    } else {
+                        log("📝 Primera vez - usando presupuesto por defecto", "info");
+                        saveUserSettings();
+                    }
+                    document.getElementById('budgetInput').value = budgetLimit;
+                    document.getElementById('budgetLimit').textContent = formatMoney(budgetLimit);
+                })
+                .catch(err => log(`⚠️ Error cargando: ${err.message}`, "info"));
+        }
+
+        function saveUserSettings() {
+            log("💾 Guardando configuración...", "info");
+            db.collection('users').doc(currentUser.uid).set({
+                budgetLimit: budgetLimit,
+                lastUpdate: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true })
+                .then(() => log("✅ Configuración guardada", "success"))
+                .catch(err => log(`❌ Error: ${err.message}`, "error"));
+        }
+
+        function setBudget() {
+            const val = parseFloat(document.getElementById('budgetInput').value);
+            if (!val || val <= 0) {
+                alert("Ingresa un monto válido");
+                return;
+            }
+            budgetLimit = val;
+            saveUserSettings();
+            showStatus(`Presupuesto actualizado: ${formatMoney(budgetLimit)}`, "success");
+            log(`💼 Presupuesto actualizado a: ${formatMoney(budgetLimit)}`, "success");
+        }
+
+        // ==================== TRANSACCIONES ====================
         function toggleRecurringOptions() {
             const isRec = document.getElementById('isRecurring').checked;
             const type = document.getElementById('txType').value;
@@ -317,7 +775,11 @@
         }
 
         function saveTransaction() {
-            if(!currentUser) { log("❌ Error: No hay usuario logueado", "error"); return; }
+            if (!currentUser) {
+                log("❌ No hay usuario logueado", "error");
+                alert("Debes iniciar sesión");
+                return;
+            }
 
             const concept = document.getElementById('txConcept').value.trim();
             const amount = parseFloat(document.getElementById('txAmount').value);
@@ -325,11 +787,14 @@
             const isRecurring = document.getElementById('isRecurring').checked;
             const dueDay = parseInt(document.getElementById('dueDay').value) || 1;
 
-            if(!concept || !amount) { alert("Completa los datos"); return; }
+            if (!concept || !amount) {
+                alert("Completa todos los datos");
+                return;
+            }
 
             const finalAmount = type === 'expense' ? -Math.abs(amount) : Math.abs(amount);
             const now = new Date();
-            const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+            const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
             const txData = {
                 uid: currentUser.uid,
@@ -342,69 +807,58 @@
                 paidMonth: isRecurring ? currentMonthStr : null
             };
 
-            log("💾 Enviando datos a Firestore...", "info");
-            log(JSON.stringify(txData), "info");
+            log(`💾 Guardando: ${concept} | ${formatMoney(finalAmount)} | Tipo: ${type}`, "info");
+            log(`📦 Payload: ${JSON.stringify(txData)}`, "info");
 
             db.collection('transactions').add(txData)
                 .then((docRef) => {
-                    log(`✅ ¡Guardado exitoso! ID: ${docRef.id}`, "success");
+                    log(`✅ ¡GUARDADO! ID Firestore: ${docRef.id}`, "success");
+                    showStatus(`✅ ${concept} guardado`, "success");
                     closeModal();
-                    // La lista se actualizará sola gracias al onSnapshot
                 })
                 .catch((error) => {
-                    log(`❌ ERROR AL GUARDAR: ${error.code} - ${error.message}`, "error");
-                    if(error.code === 'permission-denied') {
-                        alert("ERROR DE PERMISOS: Revisa las reglas de seguridad en Firebase Console > Firestore > Reglas.");
+                    log(`❌ ERROR CRÍTICO: ${error.code} - ${error.message}`, "error");
+                    toggleDebug(true);
+                    
+                    if (error.code === 'permission-denied') {
+                        alert("❌ PERMISO DENEGADO\n\nDebes actualizar las reglas de Firestore:\n1. Ir a Firebase Console\n2. Firestore > Rules\n3. Copiar las reglas del archivo FIRESTORE_RULES.txt\n4. Publish");
                     } else {
-                        alert("Error al guardar. Revisa la consola de depuración abajo.");
+                        alert("Error al guardar:\n" + error.message);
                     }
                 });
         }
 
         function deleteTransaction(id) {
-            if(confirm("¿Borrar?")) {
-                log("️ Eliminando documento...", "info");
+            if (confirm("¿Eliminar este movimiento?")) {
+                log(`🗑️ Eliminando: ${id}`, "info");
                 db.collection('transactions').doc(id).delete()
-                    .then(() => log("✅ Eliminado", "success"))
-                    .catch(err => log(`❌ Error borrando: ${err.message}`, "error"));
+                    .then(() => {
+                        log(`✅ Eliminado: ${id}`, "success");
+                        showStatus("Movimiento eliminado", "success");
+                    })
+                    .catch(err => log(`❌ Error: ${err.message}`, "error"));
             }
         }
 
-        // ✅ FUNCIÓN CORREGIDA - SIN NECESIDAD DE ÍNDICES COMPUESTOS
         function listenTransactions() {
-            if(!currentUser) return;
-            
+            if (!currentUser) return;
+
             log("👂 Escuchando cambios en tiempo real...", "info");
-            
-            // Versión sin orderBy para evitar necesidad de índices compuestos
-            const q = db.collection('transactions')
-                .where('uid', '==', currentUser.uid);
-                // Eliminamos orderBy('date', 'desc') para evitar índices compuestos
+
+            const q = db.collection('transactions').where('uid', '==', currentUser.uid);
 
             unsubTx = q.onSnapshot(
                 (snapshot) => {
-                    log(`🔄 Recibidos ${snapshot.docs.length} documentos`, "info");
-                    
-                    // Ordenamos manualmente en el cliente (más lento pero funciona sin índices)
-                    const docsArray = snapshot.docs.map(doc => ({
+                    log(`📊 Sincronizado: ${snapshot.docs.length} documentos`, "success");
+                    const docs = snapshot.docs.map(doc => ({
                         id: doc.id,
                         ...doc.data()
                     }));
-                    
-                    // Ordenar por fecha descendente manualmente
-                    docsArray.sort((a, b) => {
-                        const dateA = a.date?.toDate ? a.date.toDate() : new Date(0);
-                        const dateB = b.date?.toDate ? b.date.toDate() : new Date(0);
-                        return dateB - dateA;
-                    });
-                    
-                    renderList(docsArray);
+                    renderList(docs);
                 },
                 (error) => {
-                    log(`❌ ERROR EN LISTENER: ${error.code} - ${error.message}`, "error");
-                    if(error.code === 'permission-denied') {
-                        log("🚨 SOLUCIÓN: Ve a Firebase Console > Firestore > Reglas y publica las reglas correctas.", "error");
-                    }
+                    log(`❌ ERROR LISTENER: ${error.code} - ${error.message}`, "error");
+                    toggleDebug(true);
                 }
             );
         }
@@ -412,41 +866,42 @@
         function renderList(docs) {
             const list = document.getElementById('txList');
             list.innerHTML = '';
-            
+
             const now = new Date();
             const currentYear = now.getFullYear();
             const currentMonth = now.getMonth() + 1;
             const todayDay = now.getDate();
-            
-            let totalBal = 0, monthExp = 0, incomeChart = 0, expenseChart = 0;
-            const realTransactions = [];
-            const dailyTotals = {}; // Para gráfico de línea
 
-            docs.forEach(doc => {
-                const tx = doc;
-                tx.id = doc.id;
+            let totalBal = 0, monthIncome = 0, monthExpense = 0, pendingCount = 0;
+            const realTransactions = [];
+            const dailyData = {};
+
+            docs.forEach(tx => {
                 totalBal += tx.amount;
 
                 let txDate = tx.date?.toDate ? tx.date.toDate() : new Date();
-                
-                if(txDate.getFullYear() === currentYear && txDate.getMonth() + 1 === currentMonth) {
-                    if(tx.amount > 0) incomeChart += tx.amount;
-                    else {
-                        monthExp += Math.abs(tx.amount);
-                        expenseChart += Math.abs(tx.amount);
+
+                if (txDate.getFullYear() === currentYear && txDate.getMonth() + 1 === currentMonth) {
+                    if (tx.amount > 0) {
+                        monthIncome += tx.amount;
+                    } else {
+                        monthExpense += Math.abs(tx.amount);
                     }
-                    
-                    // Preparar datos para gráfico de línea (día a día)
+
                     const dayKey = txDate.getDate();
-                    if(!dailyTotals[dayKey]) dailyTotals[dayKey] = 0;
-                    dailyTotals[dayKey] += tx.amount;
+                    if (!dailyData[dayKey]) dailyData[dayKey] = 0;
+                    dailyData[dayKey] += tx.amount;
                 }
 
-                // Lógica Recurrente
-                if(tx.isRecurring && tx.type === 'expense') {
-                    const currentMonthStr = `${currentYear}-${String(currentMonth).padStart(2,'0')}`;
-                    if(tx.paidMonth !== currentMonthStr && todayDay >= tx.dueDay) {
-                        realTransactions.push({...tx, isVirtual: true, amount: -Math.abs(tx.amount), concept: tx.concept + " (Pendiente)", displayDate: `Vence día ${tx.dueDay}`});
+                if (tx.isRecurring && tx.type === 'expense') {
+                    const currentMonthStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
+                    if (tx.paidMonth !== currentMonthStr && todayDay >= tx.dueDay) {
+                        realTransactions.push({
+                            ...tx,
+                            isVirtual: true,
+                            displayDate: `Vence día ${tx.dueDay}`
+                        });
+                        pendingCount++;
                     } else if (tx.paidMonth === currentMonthStr) {
                         realTransactions.push(tx);
                     }
@@ -455,77 +910,169 @@
                 }
             });
 
-            // Render HTML
-            if(realTransactions.length === 0) list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted)">Sin movimientos</div>';
-            
-            realTransactions.forEach(tx => {
-                const isPos = tx.amount > 0;
-                const dateStr = tx.isVirtual ? tx.displayDate : (tx.date?.toDate ? tx.date.toDate().toLocaleDateString() : '');
-                const div = document.createElement('div');
-                div.className = `tx-item ${tx.isRecurring ? 'recurring' : ''} ${tx.isVirtual ? 'pending' : ''}`;
-                div.innerHTML = `
-                    <div>
-                        <div style="font-weight:600;">${tx.concept}</div>
-                        <div style="font-size:11px;color:var(--text-muted);">${dateStr}</div>
-                    </div>
-                    <div style="display:flex;align-items:center;gap:8px;">
-                        <span style="font-weight:700;color:${isPos?'var(--success)':'var(--danger)'}">${isPos?'+':''}${currencySymbol}${Math.abs(tx.amount).toFixed(2)}</span>
-                        ${!tx.isVirtual ? `<button onclick="deleteTransaction('${tx.id}')" style="background:none;border:none;color:var(--text-muted);cursor:pointer;">×</button>` : ''}
-                    </div>
-                `;
-                list.appendChild(div);
+            realTransactions.sort((a, b) => {
+                let dateA = a.date?.toDate ? a.date.toDate() : new Date(0);
+                let dateB = b.date?.toDate ? b.date.toDate() : new Date(0);
+                return dateB - dateA;
             });
 
-            document.getElementById('totalBalance').textContent = `${currencySymbol}${totalBal.toFixed(2)}`;
-            document.getElementById('monthlyExpense').textContent = `${currencySymbol}${monthExp.toFixed(2)}`;
-            
-            renderCharts(incomeChart, expenseChart, dailyTotals);
+            if (realTransactions.length === 0) {
+                list.innerHTML = `<div class="empty-state">
+                    <p>Sin movimientos</p>
+                    <p style="font-size: 12px; margin-top: 8px;">Toca + para agregar</p>
+                </div>`;
+            } else {
+                realTransactions.forEach(tx => {
+                    const isPos = tx.amount > 0;
+                    const dateStr = tx.isVirtual ? tx.displayDate : (tx.date?.toDate ? tx.date.toDate().toLocaleDateString('es-ES') : '');
+                    
+                    const div = document.createElement('div');
+                    div.className = `tx-item ${tx.isRecurring ? 'recurring' : ''} ${tx.isVirtual ? 'pending' : ''}`;
+                    div.innerHTML = `
+                        <div class="tx-main">
+                            <div class="tx-title">
+                                ${tx.concept}
+                                ${tx.isRecurring && !tx.isVirtual ? '<span class="badge-recurring">Recurrente</span>' : ''}
+                                ${tx.isVirtual ? '<span class="badge-pending">Por pagar</span>' : ''}
+                            </div>
+                            <div class="tx-meta">${dateStr}</div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span class="tx-amount ${isPos ? 'pos' : 'neg'}">${isPos ? '+' : ''}${formatMoney(tx.amount)}</span>
+                            ${!tx.isVirtual ? `<button class="btn-delete" onclick="deleteTransaction('${tx.id}')">×</button>` : ''}
+                        </div>
+                    `;
+                    list.appendChild(div);
+                });
+            }
+
+            // Actualizar estadísticas
+            document.getElementById('totalBalance').textContent = formatMoney(totalBal);
+            document.getElementById('totalIncome').textContent = formatMoney(monthIncome);
+            document.getElementById('totalExpense').textContent = formatMoney(monthExpense);
+            document.getElementById('pendingCount').textContent = pendingCount > 0 ? `${pendingCount} por pagar` : '';
+
+            // Actualizar presupuesto
+            updateBudgetBar(monthExpense);
+            renderCharts(monthIncome, monthExpense, dailyData);
         }
 
-        function renderCharts(inc, exp, dailyData) {
-            // Dona
-            const ctxD = document.getElementById('doughnutChart').getContext('2d');
-            if(doughnutChartInst) doughnutChartInst.destroy();
-            doughnutChartInst = new Chart(ctxD, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Ingresos', 'Gastos'],
-                    datasets: [{ data: [inc, exp], backgroundColor: ['#10b981', '#ef4444'], borderWidth: 0 }]
-                },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-            });
+        function updateBudgetBar(spent) {
+            const percent = Math.min((spent / budgetLimit) * 100, 100);
+            const remaining = Math.max(budgetLimit - spent, 0);
 
-            // Línea
-            const ctxL = document.getElementById('lineChart').getContext('2d');
-            if(lineChartInst) lineChartInst.destroy();
-            
-            // Generar array de días 1-30
-            const labels = Array.from({length: 30}, (_, i) => i + 1);
-            const dataPoints = labels.map(day => dailyData[day] || 0);
+            document.getElementById('budgetFill').style.width = `${percent}%`;
+            document.getElementById('budgetPercent').textContent = `${Math.round(percent)}%`;
+            document.getElementById('budgetRemaining').textContent = formatMoney(remaining);
+            document.getElementById('budgetSpent').textContent = formatMoney(spent);
 
-            lineChartInst = new Chart(ctxL, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Balance Diario',
-                        data: dataPoints,
-                        borderColor: '#6366f1',
-                        tension: 0.4,
-                        fill: true,
-                        backgroundColor: 'rgba(99, 102, 241, 0.1)'
-                    }]
-                },
-                options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false }, y: { display: false } }, plugins: { legend: { display: false } } }
-            });
+            // Cambiar color: Verde (0-70%) → Amarillo (70-90%) → Rojo (90-100%)
+            const fill = document.getElementById('budgetFill');
+            if (percent <= 70) {
+                fill.style.background = 'linear-gradient(90deg, var(--success), var(--info))';
+            } else if (percent <= 90) {
+                fill.style.background = 'linear-gradient(90deg, var(--warning), #fbbf24)';
+            } else {
+                fill.style.background = 'linear-gradient(90deg, var(--danger), #f87171)';
+            }
+        }
+
+        function switchChart(type) {
+            currentChartType = type;
+            document.querySelectorAll('.chart-tab').forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        function renderCharts(income, expense, dailyData) {
+            const ctx = document.getElementById('mainChart').getContext('2d');
+            if (mainChart) mainChart.destroy();
+
+            let config = {};
+
+            if (currentChartType === 'doughnut') {
+                config = {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Ingresos', 'Gastos'],
+                        datasets: [{
+                            data: [income, expense],
+                            backgroundColor: ['#10b981', '#ef4444'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: { legend: { labels: { color: '#cbd5e1' } } }
+                    }
+                };
+            } else if (currentChartType === 'bar') {
+                config = {
+                    type: 'bar',
+                    data: {
+                        labels: ['Ingresos', 'Gastos'],
+                        datasets: [{
+                            label: 'Monto',
+                            data: [income, expense],
+                            backgroundColor: ['#10b981', '#ef4444']
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                        scales: { x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } } },
+                        plugins: { legend: { display: false } }
+                    }
+                };
+            } else if (currentChartType === 'line') {
+                const labels = Array.from({length: 30}, (_, i) => i + 1);
+                const dataPoints = labels.map(day => dailyData[day] || 0);
+
+                config = {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Balance Diario',
+                            data: dataPoints,
+                            borderColor: '#6366f1',
+                            backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                            fill: true, tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        scales: { x: { display: false }, y: { ticks: { color: '#94a3b8' } } },
+                        plugins: { legend: { display: false } }
+                    }
+                };
+            }
+
+            mainChart = new Chart(ctx, config);
         }
 
         function updateDate() {
-            document.getElementById('currentDate').textContent = new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            const opts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('currentDate').textContent = new Date().toLocaleDateString('es-ES', opts);
         }
 
-        function openModal() { document.getElementById('addModal').classList.add('active'); toggleRecurringOptions(); }
-        function closeModal() { document.getElementById('addModal').classList.remove('active'); document.getElementById('txConcept').value=''; document.getElementById('txAmount').value=''; }
+        function openModal() {
+            if (!currentUser) {
+                alert("Debes iniciar sesión primero");
+                return;
+            }
+            document.getElementById('addModal').classList.add('active');
+            toggleRecurringOptions();
+        }
+
+        function closeModal() {
+            document.getElementById('addModal').classList.remove('active');
+            document.getElementById('txConcept').value = '';
+            document.getElementById('txAmount').value = '';
+            document.getElementById('isRecurring').checked = false;
+        }
+
+        // Iniciar
+        log("🚀 FinTrack Pro v4.1 cargado", "success");
+        detectCurrency();
     </script>
 </body>
 </html>
