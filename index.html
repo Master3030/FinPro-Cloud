@@ -367,8 +367,9 @@
                 <div id="loginError" class="error-msg"></div>
             </form>
 
-            <div class="auth-switch" style="text-align: center;">
-                <a onclick="showRegister()">¿Primera vez? Registrarse</a>
+            <div class="auth-switch" style="text-align: center; display: flex; gap: 10px; margin-top: 15px;">
+                <a onclick="showRegister()" style="flex: 1; padding: 8px; background: rgba(99, 102, 241, 0.2); border: 1px solid var(--primary); border-radius: 8px; color: var(--primary-light); text-decoration: none; font-size: 13px; font-weight: 600;">Registrarse</a>
+                <a onclick="showForgotPassword()" style="flex: 1; padding: 8px; background: rgba(99, 102, 241, 0.2); border: 1px solid var(--primary); border-radius: 8px; color: var(--primary-light); text-decoration: none; font-size: 13px; font-weight: 600;">Olvidé Contraseña</a>
             </div>
         </div>
     </div>
@@ -772,8 +773,46 @@
 
         // ==================== AUTENTICACIÓN ====================
         function showRegister() {
-            log("📝 Función de registro aún no disponible", "info");
-            alert("Para crear cuenta, usa Firebase Console o espera la siguiente versión");
+            const email = prompt("Email para la nueva cuenta:");
+            if (!email) return;
+            
+            const password = prompt("Contraseña (mínimo 6 caracteres):");
+            if (!password) return;
+            
+            if (password.length < 6) {
+                alert("❌ La contraseña debe tener al menos 6 caracteres");
+                return;
+            }
+            
+            log(`📝 Creando cuenta: ${email}`, "info");
+            
+            auth.createUserWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    log("✅ Cuenta creada correctamente", "success");
+                    alert("✅ Cuenta creada.\n\nAhora puedes iniciar sesión.");
+                    document.getElementById('loginEmail').value = email;
+                })
+                .catch((error) => {
+                    log(`❌ Error: ${error.message}`, "error");
+                    alert("Error: " + error.message);
+                });
+        }
+
+        function showForgotPassword() {
+            const email = prompt("Ingresa tu email para restablecer la contraseña:");
+            if (!email) return;
+            
+            log(`🔐 Enviando instrucciones de reseteo a: ${email}`, "info");
+            
+            auth.sendPasswordResetEmail(email)
+                .then(() => {
+                    log("✅ Email enviado correctamente", "success");
+                    alert("✅ Email de recuperación enviado.\n\nRevisa tu bandeja de entrada y sigue las instrucciones.");
+                })
+                .catch((error) => {
+                    log(`❌ Error: ${error.message}`, "error");
+                    alert("Error: " + error.message);
+                });
         }
 
         function handleLogin(e) {
