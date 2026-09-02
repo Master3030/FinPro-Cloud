@@ -754,11 +754,15 @@
         }
         function formatMoney(amount) {
             try {
+                // Monedas sin decimales significativos
+                const noDecimalCurrencies = ['PYG', 'VES', 'CLP', 'BOB'];
+                const decimals = noDecimalCurrencies.includes(currencyCode) ? 0 : 2;
+                
                 const formatter = new Intl.NumberFormat(currencyLocale, {
                     style: 'currency',
                     currency: currencyCode,
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2
+                    minimumFractionDigits: decimals,
+                    maximumFractionDigits: decimals
                 });
                 return formatter.format(Math.abs(amount));
             } catch (e) {
