@@ -315,13 +315,8 @@
 
         /* DEBUG CONSOLE */
         #debugConsole {
-            position: fixed; bottom: 0; left: 0; right: 0;
-            background: #000; color: #0f0; font-family: 'Courier New', monospace;
-            font-size: 11px; padding: 10px; height: 120px; overflow-y: auto;
-            border-top: 2px solid var(--primary); z-index: 2000; display: none;
+            display: none;
         }
-
-        #debugConsole.visible { display: block; }
 
         .log-entry {
             margin-bottom: 4px; padding: 2px 0;
@@ -333,14 +328,8 @@
         .log-info { color: #55ffff; }
 
         #toggleDebug {
-            position: fixed; bottom: 150px; right: 20px;
-            background: var(--primary); color: white; border: none;
-            padding: 8px 12px; border-radius: 20px; font-size: 12px;
-            cursor: pointer; z-index: 2001; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-            transition: all 0.2s;
+            display: none;
         }
-
-        #toggleDebug:hover { transform: translateY(-2px); }
 
         .status-bar {
             position: fixed; top: 0; left: 0; right: 0;
@@ -607,66 +596,34 @@
             setTimeout(() => bar.classList.remove('show'), 3000);
         }
 
-        // ==================== DETECCIÓN DE MONEDA POR PAÍS ====================
+        // ==================== DETECCIÓN DE MONEDA ====================
         function detectCurrency() {
-            log("🌍 Detectando moneda local...", "info");
-            
             try {
-                // Método 1: Por locale del navegador
                 const locale = navigator.language || 'es-ES';
-                const localeRegion = locale.split('-')[1] || locale;
                 
-                // Mapa de países y sus monedas
-                const countryMap = {
-                    'MX': 'MXN', 'CO': 'COP', 'PE': 'PEN', 'AR': 'ARS', 'CL': 'CLP',
-                    'ES': 'EUR', 'US': 'USD', 'VE': 'VES', 'EC': 'USD', 'GT': 'GTQ',
-                    'HN': 'HNL', 'NI': 'NIO', 'CR': 'CRC', 'PA': 'PAB', 'DO': 'DOP',
-                    'CU': 'CUP', 'SV': 'USD', 'BR': 'BRL', 'UY': 'UYU', 'PY': 'PYG',
-                    'BO': 'BOB', 'DE': 'EUR', 'FR': 'EUR', 'IT': 'EUR', 'GB': 'GBP',
-                    'JP': 'JPY', 'IN': 'INR', 'CN': 'CNY', 'MZ': 'MZN'
+                // Mapa simple de monedas
+                const currencyMap = {
+                    'es-MX': 'MXN', 'es-CO': 'COP', 'es-PE': 'PEN', 'es-AR': 'ARS',
+                    'es-CL': 'CLP', 'es-VE': 'VES', 'es-PY': 'PYG', 'es-BO': 'BOB',
+                    'es-ES': 'EUR', 'en-US': 'USD', 'en-GB': 'GBP', 'pt-BR': 'BRL'
                 };
                 
-                const currencyCode = countryMap[localeRegion.toUpperCase()] || 'USD';
+                currencyCode = currencyMap[locale] || 'USD';
                 
-                // Crear formatter para obtener símbolo
-                const formatter = new Intl.NumberFormat(locale, {
-                    style: 'currency',
-                    currency: currencyCode,
-                    minimumFractionDigits: 0,
-                    maximumFractionDigits: 0
-                });
+                // Obtener símbolo
+                const symbols = { 'USD': '$', 'EUR': '€', 'MXN': '$', 'ARS': '$', 'COP': '$',
+                    'PEN': 'S/', 'CLP': '$', 'VES': 'Bs.', 'PYG': '₲', 'GBP': '£', 'BRL': 'R$' };
+                currencySymbol = symbols[currencyCode] || '$';
                 
-                // Extraer símbolo
-                const parts = formatter.formatToParts(1);
-                const currencyPart = parts.find(p => p.type === 'currency');
-                currencySymbol = currencyPart ? currencyPart.value : getSymbolForCode(currencyCode);
-                
-                log(`✅ Moneda: ${currencyCode} (${currencySymbol}) - Región: ${localeRegion}`, "success");
-                
-                // Actualizar UI
+                log(`✅ Moneda: ${currencyCode} (${currencySymbol})`, "success");
                 document.getElementById('currencyBadge').textContent = currencySymbol + ' ' + currencyCode;
                 document.getElementById('currencySymbolModal').textContent = currencySymbol;
                 
-                // Guardar en localStorage
-                localStorage.setItem('currencySymbol', currencySymbol);
-                localStorage.setItem('currencyCode', currencyCode);
-                
             } catch (e) {
-                log("⚠️ Error detectando moneda: " + e.message, "info");
-                currencySymbol = localStorage.getItem('currencySymbol') || '$';
-                currencyCode = localStorage.getItem('currencyCode') || 'USD';
-                document.getElementById('currencyBadge').textContent = currencySymbol + ' ' + currencyCode;
+                currencySymbol = '$';
+                currencyCode = 'USD';
+                document.getElementById('currencyBadge').textContent = '$ USD';
             }
-        }
-
-        function getSymbolForCode(code) {
-            const symbols = {
-                'USD': '$', 'EUR': '€', 'MXN': '$', 'ARS': '$', 'COP': '$',
-                'PEN': 'S/', 'CLP': '$', 'VES': 'Bs.', 'CRC': '₡', 'VND': '₫',
-                'THB': '฿', 'INR': '₹', 'JPY': '¥', 'GBP': '£', 'CNY': '¥',
-                'BRL': 'R$', 'KRW': '₩', 'RUB': '₽', 'ZAR': 'R'
-            };
-            return symbols[code] || '$';
         }
 
         // ==================== FORMATO DE DINERO ====================
