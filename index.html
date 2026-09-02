@@ -382,7 +382,7 @@
                     <h2 id="userName">Hola...</h2>
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 8px; align-items: flex-end;">
-                    <span class="currency-badge" id="currencyBadge">🌍 Detectando...</span>
+                    <span class="currency-badge" id="currencyBadge" onclick="showCurrencySelector()" style="cursor: pointer;">🌍 Detectando...</span>
                     <button class="btn-logout" onclick="handleLogout()">Salir</button>
                 </div>
             </div>
@@ -596,37 +596,129 @@
             setTimeout(() => bar.classList.remove('show'), 3000);
         }
 
-        // ==================== DETECCIÓN DE MONEDA ====================
+        // ==================== DETECCIÓN DE MONEDA MEJORADA ====================
         function detectCurrency() {
             try {
                 const locale = navigator.language || 'es-ES';
+                const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
                 
-                // Mapa simple de monedas
-                const currencyMap = {
+                // Mapa por timezone (para países latinoamericanos)
+                const timezoneMap = {
+                    'America/Mexico_City': 'MXN',
+                    'America/Bogota': 'COP',
+                    'America/Lima': 'PEN',
+                    'America/Argentina/Buenos_Aires': 'ARS',
+                    'America/Santiago': 'CLP',
+                    'America/Caracas': 'VES',
+                    'America/Asuncion': 'PYG',
+                    'America/La_Paz': 'BOB',
+                    'America/New_York': 'USD',
+                    'America/Los_Angeles': 'USD',
+                    'Europe/London': 'GBP',
+                    'Europe/Madrid': 'EUR',
+                    'Europe/Paris': 'EUR',
+                    'America/Sao_Paulo': 'BRL'
+                };
+                
+                // Mapa por locale (fallback)
+                const localeMap = {
                     'es-MX': 'MXN', 'es-CO': 'COP', 'es-PE': 'PEN', 'es-AR': 'ARS',
                     'es-CL': 'CLP', 'es-VE': 'VES', 'es-PY': 'PYG', 'es-BO': 'BOB',
                     'es-ES': 'EUR', 'en-US': 'USD', 'en-GB': 'GBP', 'pt-BR': 'BRL'
                 };
                 
-                currencyCode = currencyMap[locale] || 'USD';
+                // Intentar por timezone primero, luego locale
+                currencyCode = timezoneMap[timezone] || localeMap[locale] || 'USD';
                 
                 // Obtener símbolo
-                const symbols = { 'USD': '$', 'EUR': '€', 'MXN': '$', 'ARS': '$', 'COP': '$',
-                    'PEN': 'S/', 'CLP': '$', 'VES': 'Bs.', 'PYG': '₲', 'GBP': '£', 'BRL': 'R$' };
+                const symbols = { 
+                    'USD': '$', 'EUR': '€', 'MXN': '$', 'ARS': '$', 'COP': '$',
+                    'PEN': 'S/', 'CLP': '$', 'VES': 'Bs.', 'PYG': '₲', 'GBP': '£', 'BRL': 'R$', 'BOB': 'Bs.'
+                };
                 currencySymbol = symbols[currencyCode] || '$';
                 
-                log(`✅ Moneda: ${currencyCode} (${currencySymbol})`, "success");
+                console.log(`🌍 Timezone: ${timezone} | Locale: ${locale} | Moneda: ${currencyCode}`);
+                
                 document.getElementById('currencyBadge').textContent = currencySymbol + ' ' + currencyCode;
                 document.getElementById('currencySymbolModal').textContent = currencySymbol;
                 
             } catch (e) {
+                console.error('Error detectando moneda:', e);
                 currencySymbol = '$';
                 currencyCode = 'USD';
                 document.getElementById('currencyBadge').textContent = '$ USD';
             }
         }
 
-        // ==================== FORMATO DE DINERO ====================
+        // ==================== SELECTOR DE MONEDA ====================
+        function showCurrencySelector() {
+            const currencies = [
+                { code: 'USD', symbol: '$', country: 'USA' },
+                { code: 'MXN', symbol: '$', country: 'México' },
+                { code: 'COP', symbol: '$', country: 'Colombia' },
+                { code: 'PEN', symbol: 'S/', country: 'Perú' },
+                { code: 'ARS', symbol: '$', country: 'Argentina' },
+                { code: 'CLP', symbol: '$', country: 'Chile' },
+                { code: 'VES', symbol: 'Bs.', country: 'Venezuela' },
+                { code: 'PYG', symbol: '₲', country: 'Paraguay' },
+                { code: 'BOB', symbol: 'Bs.', country: 'Bolivia' },
+                { code: 'EUR', symbol: '€', country: 'Europa' },
+                { code: 'GBP', symbol: '£', country: 'UK' },
+                { code: 'BRL', symbol: 'R$', country: 'Brasil' }
+            ];
+            
+            const selected = currencies.find(c => c.code === currencyCode);
+            let options = currencies.map(c => 
+                `<option value="${c.code}" ${c.code === currencyCode ? 'selected' : ''}>${c.symbol} ${c.code} - ${c.country}</option>`
+            ).join('');
+            
+            const html = `
+                <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 9999; display: flex; align-items: center; justify-content: center;">
+                    <div style="background: #1e293b; padding: 20px; border-radius: 12px; width: 90%; max-width: 300px; border: 1px solid rgba(255,255,255,0.1);">
+                        <h3 style="color: white; margin-bottom: 15px; font-size: 16px;">Selecciona tu moneda</h3>
+                        <select id="currencySelect" style="width: 100%; padding: 10px; background: #0f172a; color: white; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; margin-bottom: 15px;">
+                            ${options}
+                        </select>
+                        <button onclick="changeCurrency()" style="width: 100%; padding: 10px; background: #6366f1; color: white; border: none; border-radius: 8px; cursor: pointer; margin-bottom: 10px; font-weight: 600;">Cambiar</button>
+                        <button onclick="closeCurrencySelector()" style="width: 100%; padding: 10px; background: transparent; color: #94a3b8; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer;">Cancelar</button>
+                    </div>
+                </div>
+            `;
+            
+            const modal = document.createElement('div');
+            modal.id = 'currencyModal';
+            modal.innerHTML = html;
+            document.body.appendChild(modal);
+        }
+
+        function changeCurrency() {
+            const select = document.getElementById('currencySelect');
+            const newCode = select.value;
+            
+            const symbols = { 
+                'USD': '$', 'EUR': '€', 'MXN': '$', 'ARS': '$', 'COP': '$',
+                'PEN': 'S/', 'CLP': '$', 'VES': 'Bs.', 'PYG': '₲', 'GBP': '£', 'BRL': 'R$', 'BOB': 'Bs.'
+            };
+            
+            currencyCode = newCode;
+            currencySymbol = symbols[newCode] || '$';
+            
+            document.getElementById('currencyBadge').textContent = currencySymbol + ' ' + currencyCode;
+            document.getElementById('currencySymbolModal').textContent = currencySymbol;
+            
+            localStorage.setItem('currencyCode', currencyCode);
+            localStorage.setItem('currencySymbol', currencySymbol);
+            
+            closeCurrencySelector();
+            
+            // Re-renderizar con nueva moneda
+            location.reload();
+        }
+
+        function closeCurrencySelector() {
+            const modal = document.getElementById('currencyModal');
+            if (modal) modal.remove();
+        }
         function formatMoney(amount) {
             return `${currencySymbol}${Math.abs(amount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
         }
