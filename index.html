@@ -553,6 +553,7 @@
         let unsubTx = null;
         let currencySymbol = '$';
         let currencyCode = 'USD';
+        let currencyLocale = 'en-US'; // Locale para formato correcto
         let budgetLimit = 2000;
         let currentChartType = 'doughnut';
         let mainChart = null;
@@ -602,42 +603,56 @@
                 const locale = navigator.language || 'es-ES';
                 const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
                 
-                // Mapa por timezone (para países latinoamericanos)
+                // Mapa: timezone → {código, locale}
                 const timezoneMap = {
-                    'America/Mexico_City': 'MXN',
-                    'America/Bogota': 'COP',
-                    'America/Lima': 'PEN',
-                    'America/Argentina/Buenos_Aires': 'ARS',
-                    'America/Santiago': 'CLP',
-                    'America/Caracas': 'VES',
-                    'America/Asuncion': 'PYG',
-                    'America/La_Paz': 'BOB',
-                    'America/New_York': 'USD',
-                    'America/Los_Angeles': 'USD',
-                    'Europe/London': 'GBP',
-                    'Europe/Madrid': 'EUR',
-                    'Europe/Paris': 'EUR',
-                    'America/Sao_Paulo': 'BRL'
+                    'America/Mexico_City': { code: 'MXN', locale: 'es-MX' },
+                    'America/Bogota': { code: 'COP', locale: 'es-CO' },
+                    'America/Lima': { code: 'PEN', locale: 'es-PE' },
+                    'America/Argentina/Buenos_Aires': { code: 'ARS', locale: 'es-AR' },
+                    'America/Santiago': { code: 'CLP', locale: 'es-CL' },
+                    'America/Caracas': { code: 'VES', locale: 'es-VE' },
+                    'America/Asuncion': { code: 'PYG', locale: 'es-PY' },
+                    'America/La_Paz': { code: 'BOB', locale: 'es-BO' },
+                    'America/New_York': { code: 'USD', locale: 'en-US' },
+                    'America/Los_Angeles': { code: 'USD', locale: 'en-US' },
+                    'Europe/London': { code: 'GBP', locale: 'en-GB' },
+                    'Europe/Madrid': { code: 'EUR', locale: 'es-ES' },
+                    'Europe/Paris': { code: 'EUR', locale: 'fr-FR' },
+                    'America/Sao_Paulo': { code: 'BRL', locale: 'pt-BR' }
                 };
                 
                 // Mapa por locale (fallback)
                 const localeMap = {
-                    'es-MX': 'MXN', 'es-CO': 'COP', 'es-PE': 'PEN', 'es-AR': 'ARS',
-                    'es-CL': 'CLP', 'es-VE': 'VES', 'es-PY': 'PYG', 'es-BO': 'BOB',
-                    'es-ES': 'EUR', 'en-US': 'USD', 'en-GB': 'GBP', 'pt-BR': 'BRL'
+                    'es-MX': { code: 'MXN', locale: 'es-MX' },
+                    'es-CO': { code: 'COP', locale: 'es-CO' },
+                    'es-PE': { code: 'PEN', locale: 'es-PE' },
+                    'es-AR': { code: 'ARS', locale: 'es-AR' },
+                    'es-CL': { code: 'CLP', locale: 'es-CL' },
+                    'es-VE': { code: 'VES', locale: 'es-VE' },
+                    'es-PY': { code: 'PYG', locale: 'es-PY' },
+                    'es-BO': { code: 'BOB', locale: 'es-BO' },
+                    'es-ES': { code: 'EUR', locale: 'es-ES' },
+                    'en-US': { code: 'USD', locale: 'en-US' },
+                    'en-GB': { code: 'GBP', locale: 'en-GB' },
+                    'pt-BR': { code: 'BRL', locale: 'pt-BR' }
                 };
                 
-                // Intentar por timezone primero, luego locale
-                currencyCode = timezoneMap[timezone] || localeMap[locale] || 'USD';
+                // Obtener moneda y locale correctos
+                let currencyInfo = timezoneMap[timezone] || localeMap[locale] || { code: 'USD', locale: 'en-US' };
+                currencyCode = currencyInfo.code;
+                currencyLocale = currencyInfo.locale;
                 
-                // Obtener símbolo
-                const symbols = { 
-                    'USD': '$', 'EUR': '€', 'MXN': '$', 'ARS': '$', 'COP': '$',
-                    'PEN': 'S/', 'CLP': '$', 'VES': 'Bs.', 'PYG': '₲', 'GBP': '£', 'BRL': 'R$', 'BOB': 'Bs.'
-                };
-                currencySymbol = symbols[currencyCode] || '$';
+                // Obtener símbolo usando el locale correcto
+                const formatter = new Intl.NumberFormat(currencyLocale, {
+                    style: 'currency',
+                    currency: currencyCode,
+                    minimumFractionDigits: 0
+                });
+                const parts = formatter.formatToParts(1);
+                const currencyPart = parts.find(p => p.type === 'currency');
+                currencySymbol = currencyPart ? currencyPart.value : getSymbolForCode(currencyCode);
                 
-                console.log(`🌍 Timezone: ${timezone} | Locale: ${locale} | Moneda: ${currencyCode}`);
+                console.log(`🌍 Timezone: ${timezone} | Locale: ${currencyLocale} | Moneda: ${currencyCode} | Símbolo: ${currencySymbol}`);
                 
                 document.getElementById('currencyBadge').textContent = currencySymbol + ' ' + currencyCode;
                 document.getElementById('currencySymbolModal').textContent = currencySymbol;
@@ -646,8 +661,17 @@
                 console.error('Error detectando moneda:', e);
                 currencySymbol = '$';
                 currencyCode = 'USD';
+                currencyLocale = 'en-US';
                 document.getElementById('currencyBadge').textContent = '$ USD';
             }
+        }
+
+        function getSymbolForCode(code) {
+            const symbols = { 
+                'USD': '$', 'EUR': '€', 'MXN': '$', 'ARS': '$', 'COP': '$',
+                'PEN': 'S/', 'CLP': '$', 'VES': 'Bs.', 'PYG': '₲', 'GBP': '£', 'BRL': 'R$', 'BOB': 'Bs.'
+            };
+            return symbols[code] || '$';
         }
 
         // ==================== SELECTOR DE MONEDA ====================
@@ -695,12 +719,20 @@
             const select = document.getElementById('currencySelect');
             const newCode = select.value;
             
+            // Mapeo de moneda a locale correcto
+            const localeMap = {
+                'USD': 'en-US', 'EUR': 'es-ES', 'MXN': 'es-MX', 'ARS': 'es-AR', 'COP': 'es-CO',
+                'PEN': 'es-PE', 'CLP': 'es-CL', 'VES': 'es-VE', 'PYG': 'es-PY', 'GBP': 'en-GB', 
+                'BRL': 'pt-BR', 'BOB': 'es-BO'
+            };
+            
             const symbols = { 
                 'USD': '$', 'EUR': '€', 'MXN': '$', 'ARS': '$', 'COP': '$',
                 'PEN': 'S/', 'CLP': '$', 'VES': 'Bs.', 'PYG': '₲', 'GBP': '£', 'BRL': 'R$', 'BOB': 'Bs.'
             };
             
             currencyCode = newCode;
+            currencyLocale = localeMap[newCode] || 'en-US';
             currencySymbol = symbols[newCode] || '$';
             
             document.getElementById('currencyBadge').textContent = currencySymbol + ' ' + currencyCode;
@@ -708,6 +740,7 @@
             
             localStorage.setItem('currencyCode', currencyCode);
             localStorage.setItem('currencySymbol', currencySymbol);
+            localStorage.setItem('currencyLocale', currencyLocale);
             
             closeCurrencySelector();
             
@@ -720,7 +753,17 @@
             if (modal) modal.remove();
         }
         function formatMoney(amount) {
-            return `${currencySymbol}${Math.abs(amount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
+            try {
+                const formatter = new Intl.NumberFormat(currencyLocale, {
+                    style: 'currency',
+                    currency: currencyCode,
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+                return formatter.format(Math.abs(amount));
+            } catch (e) {
+                return `${currencySymbol}${Math.abs(amount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
+            }
         }
 
         // ==================== AUTENTICACIÓN ====================
